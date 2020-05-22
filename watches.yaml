@@ -23,3 +23,12 @@
     name: finalizer.gw.lb.nginx.com
     vars:
       delete: true
+- version: v1alpha1
+  group: lb.nginx.com
+  kind: Certificate
+  playbook: playbooks/certificate.yml
+  finalizer:
+    name: finalizer.cert.lb.nginx.com
+    vars:
+      delete: true
+

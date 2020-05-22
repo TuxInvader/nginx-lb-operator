@@ -7,6 +7,7 @@ deploy_crds() {
     verb=delete
   fi
   oc $verb -f deploy/crds/lb.nginx.com_components_crd.yaml
+  oc $verb -f deploy/crds/lb.nginx.com_certificates_crd.yaml
   oc $verb -f deploy/crds/lb.nginx.com_gateways_crd.yaml
   oc $verb -f deploy/crds/lb.nginx.com_applications_crd.yaml
   oc $verb -f deploy/crds/lb.nginx.com_controllers_crd.yaml

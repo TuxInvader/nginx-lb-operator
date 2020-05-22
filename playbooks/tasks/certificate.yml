@@ -1,0 +1,30 @@
+---
+
+    - name: Get the certificate from K8s Secret
+      block:
+
+        - name: Load the secret
+          k8s_info:
+            kind: Secret
+            name: "{{ spec.secret }}"
+            namespace: "{{ meta.namespace }}"
+          register: cert
+
+        - name: Set desiredState
+          set_fact:
+            finalState:
+              type: "{{ cert.resources.0.data.type | default('') | b64decode }}"
+              password: "{{ cert.resources.0.data.password | default('') | b64decode }}"
+              privateKey: "{{ cert.resources.0.data['tls.key'] | default('') | b64decode }}"
+              publicCert: "{{ cert.resources.0.data['tls.crt'] | default('') | b64decode }}"
+              caCerts: []
+
+      when: spec.secret is defined
+
+    - name: Using desiredState stored in self
+      set_fact:
+        finalState: "{{ spec.desiredState }}"
+      when: spec.secret is undefined
+
+...
+
