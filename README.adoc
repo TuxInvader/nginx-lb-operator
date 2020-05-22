@@ -74,6 +74,7 @@ operator-sdk build $IMAGE
 docker push $IMAGE
 ----
 
+You can ofcourse build and push to an extneral docker registry too ;-)
 
 == Install the CRDs
 
@@ -86,7 +87,10 @@ oc create -f deploy/crds/lb.nginx.com_gateways_crd.yaml
 
 == Deploy the Operator
 
-Check that you're on the correct project `oc project lb-nginx-com`, and then deploy the operator
+The Operator is namespace-scoped, so each project needs to run it's own operator. It might make more
+sense to deploy as a cluster-scoped operator, but for now it per namespace.
+
+Check that you're on the correct project, and then deploy the operator
 
 ----
 export IMAGE=image-registry.openshift-image-registry.svc:5000/default/nginx-lb-operator:latest
@@ -97,4 +101,206 @@ oc create -f deploy/role_binding.yaml
 oc create -f deploy/operator-for-reals.yaml
 ----
 
+== Managing NGINX Configs
+
+After deploying the operator it will start watching for new instances of the CRDs. There are
+currently 5 CRDs, and 4 of them are watched.
+
+.CRDs
+|===
+| CRD | Description | Watched
+
+| lb.nginx.com_controllers
+| Controller Configuration, Includes FQDN, Auth details, and the Environment to use.
+| No
+
+| lb.nginx.com_applications
+| The Application as represented in NGINX Controller
+| Yes
+
+| lb.nginx.com_gateways
+| A Service gateway, The NGINX instances on which components will be deployed
+| Yes
+
+| lb.nginx.com_components
+| The component is deployed into and application on a gateway
+| Yes
+
+| lb.nginx.com_certificates
+| Coming Soon
+| Yes
+|===
+
+The controller needs to be configured first.
+
+=== Controller CRD
+
+The controller CRD take a user_email, FQDN, and Environment. It also needs a password stored in a Kubernetes Secret
+
+Such as: 
+
+[source,yaml]
+----
+kind: Secret
+apiVersion: v1
+metadata:
+  name: dev-controller
+data:
+  user_password: bm90cmVhbGx5bXlwYXNzd29yZAo=
+type: Opaque
+----
+
+The secret will be updated by the operator with an oath_token and a login_timestamp. The Operator will reuse the oath token for
+30 minutes, after which it will perform a new login.
+
+A controller object using the above secret would look like this:
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Controller
+metadata:
+  name: dev-controller
+spec:
+  user_email: "admin@nginx.com"
+  secret: "dev-controller"
+  fqdn: "ctrl.nginx.lab"
+  environment: "ocp-dev-1"
+  validate_certs: true
+----
+
+The user account and the environment should already exist on the controller. All Applications, Gateways, Components, and Certificates
+will reference a controller object by name and be deployed into the environment specified.
+
+=== Application CRD
+
+The Application is a simple object, but it groups the components and helps with analytics visualisation
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Application
+metadata:
+  name: my-application
+spec:
+  controller: "dev-controller"
+  displayName: "My Kubernetes Application"
+  description: "An application deployed in Kubernetes"
+----
+
+=== Gateway CRD
+
+The Gateways object takes a `desiredState` whch is sent to controller as is, so you can enable
+any features exposed in the Controller API. Check your controller API for more information.
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+spec:
+  controller: "dev-controller"
+  displayName: "My OCP Gateway"
+  description: "A gateway deployed by Kubernetes"
+  desiredState:
+    ingress:
+      placement:
+        instancerefs:
+          - ref: /infrastructure/locations/unspecified/instances/6
+      uris:
+        'http://www.uk.nginx.lab': {}
+        'http://www.foo.com': {}
+----
+
+=== Component CRD
+
+The Component object also takes a `desiredState`, but the operator expects to configure both the `ingress->gatewayRefs` 
+using the `gateway` provided, and the `backend->workloadGroups->group` using the pods or NodePorts found in the `ingress`
+setting. The workload `uris` are built using `workload.scheme` and `workload.path`
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
+metadata:
+  name: my-component
+spec:
+  controller: "dev-controller"
+  application: "my-application"
+  ingress: "my-nginx-ingress-controller"
+  gateway: "my-gateway"
+  workload:
+    scheme: "http"
+    path: "/"
+    targetPort: 443
+    crcOverride: 192.168.130.11
+  displayName: "My Component"
+  description: "A component deployed by Kubernetes"
+  desiredState:
+    backend:
+      monitoring:
+        response:
+          status:
+            match: true
+            range:
+              endCode: 302
+              startCode: 200
+        uri: /
+      workloadGroups:
+        # group uris will be populated from "ingress" pods or nodeports
+        group:
+          loadBalancingMethod:
+            type: ROUND_ROBIN
+    # ingress gatewayRefs will be populated from "gateway"
+    ingress:
+      uris:
+        /: {}
+----
+
+The above would result in a `desiredState` similar to:
+
+[source,json]
+----
+  "desiredState": {
+    "ingress": {
+      "gatewayRefs": [
+        {
+          "ref": "/services/environments/ocp-dev-1/gateways/<project>.my-gateway"
+        }
+      ],
+      "uris": {
+        "/": {}
+      }
+    },
+    "backend": {
+      "workloadGroups": {
+        "group": {
+          "loadBalancingMethod": {
+            "type": "ROUND_ROBIN"
+          },
+          "uris": {
+            "http://<k8s-node-ip>:<nodeport>/": { }
+          }
+        }
+      },
+      "monitoring": {
+        "uri": "/",
+        "response": {
+          "status": {
+            "range": {
+              "endCode": 302,
+              "startCode": 200
+            },
+            "match": true
+          }
+        }
+      }
+    }
+  }
+----
+
+=== Certificate CRD
+
+TODO TODO
 
