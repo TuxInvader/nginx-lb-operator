@@ -1,0 +1,40 @@
+---
+    - name: Get the Controller Details
+      k8s_info:
+        kind: Controller
+        api_version: lb.nginx.com/v1alpha1
+        name: "{{ controller }}"
+        namespace: "{{ meta.namespace }}"
+      register: ctl_info
+
+    - name: Get the Secret password or token
+      k8s_info:
+        kind: Secret
+        name: "{{ ctl_info.resources.0.spec.secret }}"
+        namespace: "{{ meta.namespace }}"
+      register: ctl_creds
+
+    - name: Create Controller facts
+      set_fact:
+        nginx_controller_user_email: "{{ ctl_info.resources.0.spec.user_email }}"
+        nginx_controller_fqdn: "{{ ctl_info.resources.0.spec.fqdn }}"
+        nginx_controller_validate_certs: "{{ ctl_info.resources.0.spec.validate_certs }}"
+        nginx_controller_user_password: "{{ ctl_creds.resources.0.data.user_password | b64decode }}"
+        nginx_controller_auth_token: "{{ ctl_creds.resources.0.data.auth_token | default('') | b64decode }}"
+        nginx_controller_environmentName: "{{ ctl_info.resources.0.spec.environment }}"
+
+    - name: Login or refresh the Controller token
+      block:
+
+      - name: Retrieve the NGINX Controller auth token
+        include_role:
+          name: nginxinc.nginx_controller.nginx_controller_generate_token
+
+      - name: Update the K8s Secret
+        k8s:
+          state: present
+          definition: "{{ ctl_creds.resources.0 | combine({ 'metadata': { 'annotations': { 'login_time': ansible_date_time.epoch }}}, recursive=True) | combine({ 'data': { 'auth_token': (nginx_controller_auth_token | b64encode) }}, recursive=True) | to_yaml }}"
+
+      when: ( ctl_creds.resources.0.metadata.annotations.login_time | default(0) | int ) < ( (ansible_date_time.epoch |int) - 1800 )
+...
+

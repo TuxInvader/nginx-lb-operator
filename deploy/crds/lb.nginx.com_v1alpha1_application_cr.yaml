@@ -1,0 +1,9 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Application
+metadata:
+  name: my-application
+spec:
+  # Add fields here
+  controller: "dev-controller"
+  displayName: "My Kubernetes Application"
+  description: "An application deployed in Kubernetes"

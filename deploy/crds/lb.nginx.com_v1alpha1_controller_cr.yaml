@@ -1,0 +1,11 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Controller
+metadata:
+  name: dev-controller
+spec:
+  # Add fields here
+  user_email: "admin@nginx.com"
+  secret: "dev-controller"
+  fqdn: "controller.nginx.com"
+  environment: "ocp-dev-1"
+  validate_certs: false

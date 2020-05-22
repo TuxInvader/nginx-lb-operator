@@ -1,0 +1,18 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+spec:
+  # Add fields here
+  controller: "dev-controller"
+  displayName: "My OCP Gateway"
+  description: "A gateway deployed by Kubernetes"
+  desiredState:
+    ingress:
+      placement:
+        instancerefs:
+          - ref: /infrastructure/locations/unspecified/instances/2
+      uris:
+        'http://foo.bar.com': {}
+        'http://www.foo.bar.com': {}
+

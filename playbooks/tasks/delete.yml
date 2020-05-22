@@ -1,0 +1,34 @@
+---
+    - name: Send DELETE
+      uri:
+        url: "{{ delete_url }}"
+        method: "DELETE"
+        status_code:
+          - 202
+          - 204
+          - 404
+        validate_certs: "{{ nginx_controller_validate_certs | default(false) }}"
+        headers:
+          Cookie: "{{ nginx_controller_auth_token }}"
+
+    - name: Pause
+      pause:
+        seconds: "2" 
+
+    - name: Wait for deletion
+      uri:
+        url: "{{ delete_url }}"
+        method: "GET"
+        status_code:
+          - 204
+          - 404
+        validate_certs: "{{ nginx_controller_validate_certs | default(false) }}"
+        headers:
+          Cookie: "{{ nginx_controller_auth_token }}"
+      register: nginx_delete_status
+      until: (nginx_delete_status is defined) and
+             (nginx_delete_status.status == 404 or nginx_delete_status.status == 204)
+      retries: 10
+      delay: 2
+
+...

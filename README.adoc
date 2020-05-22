@@ -1,0 +1,100 @@
+= NGINX Controller Operator
+:showtitle:
+:toc: left
+
+== Operator SDK
+This Operator was built with the operator SDK. Follow these install instructions...
+
+https://sdk.operatorframework.io/docs/install-operator-sdk/[https://sdk.operatorframework.io/docs/install-operator-sdk/]
+
+== Codeready Containers Setup
+
+=== Trust CRC Repo
+
+First trust make docker trust the certificate from your CRC repo. Get the cert with:
+
+----
+oc extract secret/router-ca --keys=tls.crt -n openshift-ingress-operator --confirm --to=-
+----
+
+On Debian/Ubuntu you can make the OS trust the Cert by adding it to you ca-certificates
+
+----
+oc extract secret/router-ca --keys=tls.crt -n openshift-ingress-operator --confirm --to=- | sudo tee /usr/local/share/ca-certificates/crc-router.crt
+sudo update-ca-certificates
+----
+
+Then login to the repo
+
+----
+docker login -p $(oc whoami -t) -u unused default-route-openshift-image-registry.apps-crc.testing
+----
+
+== Build the Operator 
+
+These instructions assume you are using the OCP 4.x image-repository in CRC. Change the image name if you're deploying
+onto a real OCP environment
+
+=== Store image in same project
+
+We need the OCP project to exist first, else we can't upload images for it.
+----
+oc new-project lb-nginx-com
+----
+
+build and push to our new project.
+
+----
+export IMAGE=default-route-openshift-image-registry.apps-crc.testing/lb-nginx-com/nginx-lb-operator:latest
+operator-sdk build $IMAGE
+docker push $IMAGE
+----
+
+=== Store image in different project (eg default)
+
+Alternatively you can push to the default project (or any other project) as long as your project has access.
+
+Enable cross namespace repo access with:
+
+----
+oc policy add-role-to-group registry-viewer system:serviceaccounts:<consumer> --namespace=<publisher>
+----
+
+Eg:
+
+----
+oc policy add-role-to-group registry-viewer system:serviceaccounts:lb-nginx-com --namespace=default
+----
+
+Then push to default (or other) project...
+
+----
+export IMAGE=default-route-openshift-image-registry.apps-crc.testing/default/nginx-lb-operator:latest
+operator-sdk build $IMAGE
+docker push $IMAGE
+----
+
+
+== Install the CRDs
+
+----
+oc create -f deploy/crds/lb.nginx.com_controllers_crd.yaml
+oc create -f deploy/crds/lb.nginx.com_applications_crd.yaml
+oc create -f deploy/crds/lb.nginx.com_components_crd.yaml
+oc create -f deploy/crds/lb.nginx.com_gateways_crd.yaml
+----
+
+== Deploy the Operator
+
+Check that you're on the correct project `oc project lb-nginx-com`, and then deploy the operator
+
+----
+export IMAGE=image-registry.openshift-image-registry.svc:5000/default/nginx-lb-operator:latest
+sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/operator.yaml > deploy/operator-for-reals.yaml
+oc create -f deploy/service_account.yaml
+oc create -f deploy/role.yaml
+oc create -f deploy/role_binding.yaml
+oc create -f deploy/operator-for-reals.yaml
+----
+
+

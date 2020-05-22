@@ -1,0 +1,61 @@
+---
+    - name: Get the Ingress Service Details
+      k8s_info:
+        kind: Service
+        api_version: v1
+        name: "{{ spec.ingress }}"
+        namespace: "{{ meta.namespace }}"
+      register: service_info
+
+    - name: debug
+      debug:
+        msg: "{{ service_info }}"
+
+    - name: process selectors
+      set_fact:
+        pod_selectors: "{{ pod_selectors | default([]) + [ item.key ~ ' = ' ~ item.value ] }}"
+      with_dict: "{{ service_info.resources.0.spec.selector }}"
+
+    - name: Get the Ingress Server Pods
+      k8s_info:
+        kind: Pod
+        api_version: v1
+        namespace: "{{ meta.namespace }}"
+        label_selectors: "{{ pod_selectors }}"
+      register: pod_info
+
+    - name: Build workgroup for NodePort deployment
+      block:
+
+        - name: Get the NodePorts for the service
+          set_fact:
+            node_port: "{{ service_info.resources.0.spec | json_query( target_port_query ) }}" 
+          vars:
+            target_port_query: "ports[?targetPort==`{{ spec.workload.targetPort }}`].nodePort"
+
+        - name: Generate the workload list
+          set_fact:
+            node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
+          loop: "{{ pod_info | json_query( pod_name_query ) }}"
+          vars:
+            pod_name_query: "resources[*].status.hostIP"
+          when: spec.workload.crcOverride is undefined
+
+        - name: Use CRC Override IP for workload list
+          set_fact:
+            node_ips: "{{ [ ( spec.workload.scheme | default('http') )  ~ '://' ~ spec.workload.crcOverride ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
+          when: spec.workload.crcOverride is defined
+
+      when: service_info.resources.0.spec.type == "NodePort"
+
+    - name: Add workloads to desiredState
+      set_fact:
+        finalState: "{{ spec.desiredState | default({}) | combine( { 'backend':{ 'workloadGroups':{ 'group':{ 'uris': { item: {}} }}}}, recursive=True) }}"
+      loop: "{{ node_ips | list }}"
+
+    - name: debug
+      debug:
+        msg: "{{ finalState }}"
+
+...
+

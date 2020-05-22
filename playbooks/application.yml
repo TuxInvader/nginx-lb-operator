@@ -1,0 +1,40 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  collections:
+    - community.kubernetes
+    - operator_sdk.util
+    - nginxinc.nginx_controller
+
+  tasks:
+
+    - name: Work around Ansible snake_casing our vars
+      set_fact:
+        spec: "{{ _lb_nginx_com_application_spec }}"
+
+    - name: Setup Connection to Controller
+      import_tasks: tasks/setup_env.yml
+
+    - name: Configure the application
+      include_role:
+        name: nginxinc.nginx_controller.nginx_controller_application
+      vars:
+        nginx_controller_app:
+          metadata:
+            name: "{{ meta.namespace ~ '.' ~ meta.name }}"
+            displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+            description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
+      when: delete is undefined
+
+    - name: Remove the Application
+      block:
+
+        - name: Build Controller URL
+          set_fact:
+            delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ meta.namespace ~ '.' ~ meta.name }}"
+
+        - name: Perform deletion tasks
+          import_tasks: tasks/delete.yml
+
+      when: delete is defined
+

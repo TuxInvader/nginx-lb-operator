@@ -1,0 +1,37 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
+metadata:
+  name: my-component
+spec:
+  # Add fields here
+  controller: "dev-controller"
+  application: "my-application"
+  ingress: "my-nginx-ingress-controller"
+  gateway: "my-gateway"
+  workload:
+    scheme: "http"
+    path: "/"
+    targetPort: 443
+    crcOverride: 192.168.130.11
+  displayName: "My Component"
+  description: "A component deployed by Kubernetes"
+  desiredState:
+    backend:
+      monitoring:
+        response:
+          status:
+            match: true
+            range:
+              endCode: 302
+              startCode: 200
+        uri: /
+      workloadGroups:
+        # group uris will be populated from "ingress" pods or nodeports
+        group:
+          loadBalancingMethod:
+            type: ROUND_ROBIN
+    # ingress gatewayRefs will be populated from "gateway"
+    ingress:
+      uris:
+        /: {}
+

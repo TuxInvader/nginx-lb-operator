@@ -1,0 +1,42 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  collections:
+    - community.kubernetes
+    - operator_sdk.util
+    - nginxinc.nginx_controller
+
+  tasks:
+
+    - name: Work around Ansible snake_casing our vars
+      set_fact:
+        spec: "{{ _lb_nginx_com_gateway_spec }}"
+
+    - name: Setup Connection to Controller
+      import_tasks: tasks/setup_env.yml
+
+    - name: Configure the Gateway
+      include_role:
+        name: nginxinc.nginx_controller.nginx_controller_gateway
+      vars:
+        nginx_controller_gateway:
+          metadata:
+            name: "{{ meta.namespace ~ '.' ~ meta.name }}"
+            displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+            description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
+          desiredState: "{{ spec.desiredState | default({}) }}"
+      when: delete is undefined
+
+    - name: Remove the Gateway
+      block:
+
+        - name: Build Controller URL
+          set_fact:
+            delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/gateways/{{ meta.namespace ~ '.' ~ meta.name }}"
+
+        - name: Perform deletion tasks
+          import_tasks: tasks/delete.yml
+
+      when: delete is defined
+
+
