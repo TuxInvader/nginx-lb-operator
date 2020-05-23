@@ -54,6 +54,18 @@
 
       when: service_info.resources.0.spec.type == "NodePort"
 
+    - name: Build workgroup for NodePort deployment
+      block:
+
+        - name: Generate the workload list
+          set_fact:
+            node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ spec.workload.targetPort ~ ( spec.workload.path | default() ) ] }}"
+          with_list: "{{ pod_info | json_query( pod_name_query ) }}"
+          vars:
+            pod_name_query: "resources[*].status.podIP"
+
+      when: service_info.resources.0.spec.type != "NodePort"
+
     - name: Dump the Nodes list
       debug:
         msg: "{{ node_ips }}"

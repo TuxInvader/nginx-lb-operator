@@ -219,6 +219,12 @@ The Component object also takes a `desiredState`, but the operator expects to co
 using the `gateway` provided, and the `backend->workloadGroups->group` using the pods or NodePorts found in the `ingress`
 setting. The workload `uris` are built using `workload.scheme` and `workload.path`
 
+If the Ingress service is discovered to be using `NodePort`, then the workload groups will be set to the k8s nodes with
+the dynamically assigned port. Otherwise the workloads will be set to the pod IP and the `workload.targetPort`
+
+If you are using Codeready Containers The `workload.crcOverride` can be set to the IP of your CRC VM. You must set
+Ingress services to use the `NodePort` type in this case.
+
 [source,yaml]
 ----
 apiVersion: lb.nginx.com/v1alpha1
