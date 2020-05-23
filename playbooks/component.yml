@@ -5,6 +5,8 @@
     - community.kubernetes
     - operator_sdk.util
     - nginxinc.nginx_controller
+  vars:
+    ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_COMPONENT_LB_NGINX_COM') }}"
 
   tasks:
 
@@ -15,35 +17,44 @@
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml
 
-    - name: Get the workgroups
-      import_tasks: tasks/workgroups.yml
-
-    - name: set the gatewayRefs
-      set_fact:
-        finalState: "{{ finalState | default({}) | combine( { 'ingress':{ 'gatewayRefs': [ { 'ref': '/services/environments/' ~ nginx_controller_environmentName ~ '/gateways/' ~ meta.namespace ~ '.' ~ spec.gateway } ] }}, recursive=True) }}"
-
     - name: Configure the Component
-      include_role:
-        name: nginxinc.nginx_controller.nginx_controller_component
-      vars:
-        nginx_controller_appName: "{{ meta.namespace ~ '.' ~ spec.application }}"
-        nginx_controller_component:
-          metadata:
-            name: "{{ meta.namespace ~ '.' ~ meta.name }}"
-            displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
-            description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
-          desiredState: "{{ finalState | default({}) }}"
+      block: 
+    
+      - name: Get the workgroups
+        import_tasks: tasks/workgroups.yml
+
+      - name: set the gatewayRefs
+        set_fact:
+          spec: "{{ spec | default({}) | combine( { 'desiredState': { 'ingress':{ 'gatewayRefs': [ { 'ref': '/services/environments/' ~ nginx_controller_environmentName ~ '/gateways/' ~ meta.namespace ~ '.' ~ spec.gateway } ] }}}, recursive=True) }}"
+
+      - name: Dump the final spec
+        debug:
+          msg: "{{ spec }}"
+        when: ansible_verbosity > 2
+
+      - name: Send the configuration to controller
+        include_role:
+          name: nginxinc.nginx_controller.nginx_controller_component
+        vars:
+          nginx_controller_appName: "{{ meta.namespace ~ '.' ~ spec.application }}"
+          nginx_controller_component:
+            metadata:
+              name: "{{ meta.namespace ~ '.' ~ meta.name }}"
+              displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+              description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
+            desiredState: "{{ spec.desiredState | default({}) }}"
+
       when: delete is undefined
 
     - name: Remove the Component
       block:
 
-        - name: Build Controller URL
-          set_fact:
-            delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ meta.namespace ~ '.' ~ spec.application }}/components/{{ meta.namespace ~ '.' ~ meta.name }}"
+      - name: Build Controller URL
+        set_fact:
+          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ meta.namespace ~ '.' ~ spec.application }}/components/{{ meta.namespace ~ '.' ~ meta.name }}"
 
-        - name: Perform deletion tasks
-          import_tasks: tasks/delete.yml
+      - name: Perform deletion tasks
+        import_tasks: tasks/delete.yml
 
       when: delete is defined
 

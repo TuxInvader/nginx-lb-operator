@@ -7,9 +7,10 @@
         namespace: "{{ meta.namespace }}"
       register: service_info
 
-    - name: debug
+    - name: Dump the Service Info
       debug:
         msg: "{{ service_info }}"
+      when: ansible_verbosity > 2
 
     - name: process selectors
       set_fact:
@@ -24,6 +25,11 @@
         label_selectors: "{{ pod_selectors }}"
       register: pod_info
 
+    - name: Dump the Pods result
+      debug:
+        msg: "{{ pod_info }}"
+      when: ansible_verbosity > 2
+
     - name: Build workgroup for NodePort deployment
       block:
 
@@ -36,7 +42,7 @@
         - name: Generate the workload list
           set_fact:
             node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
-          loop: "{{ pod_info | json_query( pod_name_query ) }}"
+          with_list: "{{ pod_info | json_query( pod_name_query ) }}"
           vars:
             pod_name_query: "resources[*].status.hostIP"
           when: spec.workload.crcOverride is undefined
@@ -48,14 +54,15 @@
 
       when: service_info.resources.0.spec.type == "NodePort"
 
+    - name: Dump the Nodes list
+      debug:
+        msg: "{{ node_ips }}"
+      when: ansible_verbosity > 2
+
     - name: Add workloads to desiredState
       set_fact:
-        finalState: "{{ spec.desiredState | default({}) | combine( { 'backend':{ 'workloadGroups':{ 'group':{ 'uris': { item: {}} }}}}, recursive=True) }}"
-      loop: "{{ node_ips | list }}"
-
-    - name: debug
-      debug:
-        msg: "{{ finalState }}"
+        spec: "{{ spec | default({}) | combine( { 'desiredState':{ 'backend':{ 'workloadGroups':{ 'group':{ 'uris': { item: {}} }}}}}, recursive=True) }}"
+      with_list: "{{ node_ips }}"
 
 ...
 
