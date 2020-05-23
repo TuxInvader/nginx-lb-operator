@@ -302,5 +302,70 @@ The above would result in a `desiredState` similar to:
 
 === Certificate CRD
 
-TODO TODO
+The certificate Resource can be specified either by providing the details in the object directly
+within the `desiredState` or by referencing a Kubernetes Secret in `secret`.
+
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Certificate
+metadata:
+  name: my-certificate
+spec:
+  controller: "dev-controller"
+  displayName: "My Kubernetes Certificate"
+  description: "A certificated deployed in Kubernetes"
+  #secret: secret-containing-the-cert
+  desiredState:
+    type: PEM
+    caCerts: []
+    privateKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQYBXFTj1ZdJGH
+      7IfomkeJfedaIueD01L6X6jj8TvS2xwTRHL4LIkZP882qHs2VfEpgbVi6a96lvWP
+      TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED
+      6bug7eceyafsFTTEghcNloHWnYBARA3878X5RQkLVUNocrZLkBG2Dn2d3aiEpWww
+      CZ+gbhraYKAflzD6wTJL29D5dLGF5k/88RTN60Gzoaxq7CkvlLwXCZjQSvjEGq5i
+      whJYgXwWvqy5VXxLc5amLXk=
+      -----END PRIVATE KEY-----
+    publicCert: |-
+      -----BEGIN CERTIFICATE-----
+      MIIDpzCCAo+gAwIBAgIUb+NqxHIP0Z15aqy5FY8+bb1vq6IwDQYJKoZIhvcNAQEL
+      1Xnimah+mQMOuWiJU9W9omet5Y9OemQLHmeSVFbfQXBkTNKGO+2iKtWJNO8+zzT7
+      TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED
+      5WZTPiggaDbDAwjK2QP2N933lHxR5JDmkHHH6GHKLWXgYgxY0zx8R2+eFyvxJvGB
+      yaw7SnX8i5mjkgwwGhgTMBnSdf3F9eLcMHPgceMOuTyynpe9SSE9Bck3LykgvQDW
+      InWB8mhlndb/p8ZYVLx9y2LDq1h3iymbnoHM
+      -----END CERTIFICATE-----
+----
+
+When referencing the cert as a kubernetes secret, then it should be an Opaque type and
+the certificate details should be stored in `tls.key` and `tls.crt`. 
+
+----
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-cert
+data:
+  tls.crt: >-
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwekNDQW8rZ0F3SUJBZ0lVYitOcXhISVAw
+  tls.key: >-
+    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZB
+  type: UEVN
+type: Opaque
+----
+
+and the Certificate would look like this
+
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Certificate
+metadata:
+  name: my-certificate
+spec:
+  controller: "dev-controller"
+  displayName: "My Kubernetes Certificate"
+  description: "A certificated deployed in Kubernetes"
+  secret: my-cert
+----
 
