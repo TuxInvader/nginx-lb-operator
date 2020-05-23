@@ -5,6 +5,8 @@
     - community.kubernetes
     - operator_sdk.util
     - nginxinc.nginx_controller
+  vars:
+    ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_CERTIFICATE_LB_NGINX_COM') }}"
 
   tasks:
 
@@ -15,31 +17,39 @@
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml
 
-    - name: Perform the certificate processing
-      import_tasks: tasks/certificate.yml
-
     - name: Configure the Certificate
-      include_role:
-        name: nginxinc.nginx_controller.nginx_controller_certificate
-      vars:
-        nginx_controller_certificate:
-          metadata:
-            name: "{{ meta.namespace ~ '.' ~ meta.name }}"
-            displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
-            description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
-          desiredState: "{{ finalState | default({}) }}"
+      block:
+
+      - name: Perform the certificate processing
+        import_tasks: tasks/certificate.yml
+
+      - name: Dump the final spec
+        debug:
+          msg: "{{ spec }}"
+        when: ansible_verbosity > 2
+
+      - name: Configure the Certificate
+        include_role:
+          name: nginxinc.nginx_controller.nginx_controller_certificate
+        vars:
+          nginx_controller_certificate:
+            metadata:
+              name: "{{ meta.namespace ~ '.' ~ meta.name }}"
+              displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+              description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
+            desiredState: "{{ spec.desiredState | default({}) }}"
+
       when: delete is undefined
 
     - name: Remove the Gateway
       block:
 
-        - name: Build Controller URL
-          set_fact:
-            delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/certs/{{ meta.namespace ~ '.' ~ meta.name }}"
+      - name: Build Controller URL
+        set_fact:
+          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/certs/{{ meta.namespace ~ '.' ~ meta.name }}"
 
-        - name: Perform deletion tasks
-          import_tasks: tasks/delete.yml
+      - name: Perform deletion tasks
+        import_tasks: tasks/delete.yml
 
       when: delete is defined
-
 

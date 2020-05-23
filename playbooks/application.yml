@@ -5,6 +5,8 @@
     - community.kubernetes
     - operator_sdk.util
     - nginxinc.nginx_controller
+  vars:
+    ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_APPLICATION_LB_NGINX_COM') }}"
 
   tasks:
 
@@ -14,6 +16,11 @@
 
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml
+
+    - name: Dump the final spec
+      debug:
+        msg: "{{ spec }}"
+      when: ansible_verbosity > 2
 
     - name: Configure the application
       include_role:
@@ -29,12 +36,12 @@
     - name: Remove the Application
       block:
 
-        - name: Build Controller URL
-          set_fact:
-            delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ meta.namespace ~ '.' ~ meta.name }}"
+      - name: Build Controller URL
+        set_fact:
+          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ meta.namespace ~ '.' ~ meta.name }}"
 
-        - name: Perform deletion tasks
-          import_tasks: tasks/delete.yml
+      - name: Perform deletion tasks
+        import_tasks: tasks/delete.yml
 
       when: delete is defined
 
