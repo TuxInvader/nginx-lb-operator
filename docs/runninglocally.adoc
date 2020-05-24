@@ -1,0 +1,39 @@
+= Testing the Operator locally
+:showtitle:
+:toc: left
+
+== Setup
+
+You need to have a `KUBECONFIG` setup for access to your kubernetes cluster, and the
+Operator SDK installed. Then you need a few python modules.
+
+To install with pip, run:
+
+----
+pip3 install ansible
+pip3 install ansible-runner
+pip3 install ansible-runner-http
+pip3 install openshift
+----
+
+Check where PIP installs the binaries and ensure they are in your path.
+
+----
+pip3 show ansible
+----
+
+The `Location` will show the location of the packages. In my case ansible is installed
+at `~/.local/lib/python3.5/site-packages`. So the binaries are in `~/.local/bin`.
+
+== Get the Ansible Collections
+
+----
+ansible-galaxy collection install -r requirements.yml
+----
+
+== Run the Operator
+
+----
+operator-sdk run --local --watch-namespace <some-namespace> --ansible-verbosity 3
+----
+

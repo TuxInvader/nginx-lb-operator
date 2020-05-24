@@ -120,6 +120,11 @@ kubectl create -f deploy/crds/lb.nginx.com_components_crd.yaml
 kubectl create -f deploy/crds/lb.nginx.com_gateways_crd.yaml
 ----
 
+****
+You're ready to deploy the operator container, but you can also test it locally using the SDK.
+See <<docs/runninglocally.adoc#,Running the Operator Locally>> if you want to test/debug.
+****
+
 == Deploy the Operator
 
 The Operator is namespace-scoped, so each project needs to run it's own operator. 
