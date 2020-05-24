@@ -2,136 +2,150 @@
 :showtitle:
 :toc: left
 
-== Operator SDK
-This Operator was built with the operator SDK. Follow these install instructions...
+== About
 
-https://sdk.operatorframework.io/docs/install-operator-sdk/[https://sdk.operatorframework.io/docs/install-operator-sdk/]
+This repository contains a https://kubernetes.io/docs/concepts/extend-kubernetes/operator/[Kubernetes Operator]
+for use with https://kubernetes.io/[Kubernetes] or https://www.openshift.com/[RedHat OpenShift Container Platform (OCP)].
+The operator is built using the https://sdk.operatorframework.io/docs/install-operator-sdk/[Operator-SDK]
+from RedHat, and can manage http://nginx.org/[NGINX] or https://www.nginx.com/[NGINX Plus] Load Balancers running
+outside the container platform.
 
-== Codeready Containers Setup
+The Operator is designed to work with https://www.nginx.com/products/nginx-controller/[NGINX Controller] to
+provide an Application Centric deployment model. The NGINX Controller provides a declarative API which is RBAC
+enabled and enables you to link roles and environments to NGINX Instances ("Gateways").
 
-=== Trust CRC Repo
+Multiple environments and RBAC users can deploy to the same Gateways. The controller builds a best practice
+NGINX configuration which incorporates all services and pushes it out to NGINX when configuration is changed.
+This allows multiple "projects" or "namespaces" to deploy configuration to the same or different NGINX
+instances.
 
-First trust make docker trust the certificate from your CRC repo. Get the cert with:
+=== How does it work?
 
-----
-oc extract secret/router-ca --keys=tls.crt -n openshift-ingress-operator --confirm --to=-
-----
+The operator configures an external NGINX instance (via controller) to Load Balance onto a
+https://kubernetes.io/docs/concepts/services-networking/service/[Kubernetes Service].
 
-On Debian/Ubuntu you can make the OS trust the Cert by adding it to you ca-certificates
+If the service is configured with the NodePort ServiceType, then the external Load Balancer will
+use the Kubernetes/OCP node IPs with the assigned port. If the ServiceType is not NodePort then
+the configuration will try to reach the pods directly.
 
-----
-oc extract secret/router-ca --keys=tls.crt -n openshift-ingress-operator --confirm --to=- | sudo tee /usr/local/share/ca-certificates/crc-router.crt
-sudo update-ca-certificates
-----
-
-Then login to the repo
-
-----
-docker login -p $(oc whoami -t) -u unused default-route-openshift-image-registry.apps-crc.testing
-----
-
-== Build the Operator 
-
-These instructions assume you are using the OCP 4.x image-repository in CRC. Change the image name if you're deploying
-onto a real OCP environment
-
-=== Store image in same project
-
-We need the OCP project to exist first, else we can't upload images for it.
-----
-oc new-project lb-nginx-com
-----
-
-build and push to our new project.
-
-----
-export IMAGE=default-route-openshift-image-registry.apps-crc.testing/lb-nginx-com/nginx-lb-operator:latest
-operator-sdk build $IMAGE
-docker push $IMAGE
-----
-
-=== Store image in different project (eg default)
-
-Alternatively you can push to the default project (or any other project) as long as your project has access.
-
-Enable cross namespace repo access with:
-
-----
-oc policy add-role-to-group registry-viewer system:serviceaccounts:<consumer> --namespace=<publisher>
-----
-
-Eg:
-
-----
-oc policy add-role-to-group registry-viewer system:serviceaccounts:lb-nginx-com --namespace=default
-----
-
-Then push to default (or other) project...
-
-----
-export IMAGE=default-route-openshift-image-registry.apps-crc.testing/default/nginx-lb-operator:latest
-operator-sdk build $IMAGE
-docker push $IMAGE
-----
-
-You can ofcourse build and push to an extneral docker registry too ;-)
-
-== Install the CRDs
-
-----
-oc create -f deploy/crds/lb.nginx.com_controllers_crd.yaml
-oc create -f deploy/crds/lb.nginx.com_applications_crd.yaml
-oc create -f deploy/crds/lb.nginx.com_components_crd.yaml
-oc create -f deploy/crds/lb.nginx.com_gateways_crd.yaml
-----
-
-== Deploy the Operator
-
-The Operator is namespace-scoped, so each project needs to run it's own operator. It might make more
-sense to deploy as a cluster-scoped operator, but for now it per namespace.
-
-Check that you're on the correct project, and then deploy the operator
-
-----
-export IMAGE=image-registry.openshift-image-registry.svc:5000/default/nginx-lb-operator:latest
-sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/operator.yaml > deploy/operator-for-reals.yaml
-oc create -f deploy/service_account.yaml
-oc create -f deploy/role.yaml
-oc create -f deploy/role_binding.yaml
-oc create -f deploy/operator-for-reals.yaml
-----
-
-== Managing NGINX Configs
-
-After deploying the operator it will start watching for new instances of the CRDs. There are
-currently 5 CRDs, and 4 of them are watched.
+The Operator includes several https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/[Custom Resources]
+which it watches for configuration. The CRs largely tie into the Controllers Application Centric View.
+After deploying the operator it will start watching for these CRs. There are currently 5 CRs, and 4 of them are watched.
 
 .CRDs
 |===
 | CRD | Description | Watched
 
-| lb.nginx.com_controllers
+| <<controller-crd[lb.nginx.com_controllers]>>
 | Controller Configuration, Includes FQDN, Auth details, and the Environment to use.
 | No
 
-| lb.nginx.com_applications
+| <<application-crd[lb.nginx.com_applications]>>
 | The Application as represented in NGINX Controller
 | Yes
 
-| lb.nginx.com_gateways
+| <<gateway-crd[lb.nginx.com_gateways]>>
 | A Service gateway, The NGINX instances on which components will be deployed
 | Yes
 
-| lb.nginx.com_components
-| The component is deployed into and application on a gateway
+| <<component-crd[lb.nginx.com_components]>>
+| The component is deployed into an Application on a Gateway
 | Yes
 
-| lb.nginx.com_certificates
-| Coming Soon
+| <<certificate-crd[lb.nginx.com_certificates]>>
+| A TLS Certificate for use in a Gateway or Component
 | Yes
 |===
 
-The controller needs to be configured first.
+The `Controller` needs to be configured first because it holds connection information for the NGINX Controller.
+All of the other resources require a `Controller` object. The `Application` and `Certificate` objects have no other
+dependencies. The `Gateway` may require a `Certificate` if the service is using TLS, and the `Component` links all
+other object together to form the "Application Endpoint".
+
+The Kubernetes Service should be set in the `Component` in the `spec.ingress` setting.
+
+=== Usage with Ingress Controller
+
+This operator can be used in conjunction with the https://docs.nginx.com/nginx-ingress-controller/[NGINX Ingress Controller]
+to provide external load balancing onto an NGINX Ingress layer running inside your container platform.
+This is recommended in large scale deployments because it keeps the bulk of the Application Deliver Controller (ADC)
+functionality within the container platform and namespace/project. 
+
+NGINX Ingress Controller provides several https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/[Custom Resources]
+which enable many more advanced features beyond those included with standard Ingress objects or OCP Routes.
+While it has become common for Load Balancers to extend Ingress using annotations, that method is error prone
+and fragments the Ingress spec. Using NGINX Custom Resources instead of Ingress has the following advantages:
+
+* NGINX Custom Resources are fully validated by the Kubernetes API
+* VirtualServer, VirtualServerRoute, TransportServer, etc all RBAC enabled
+* Routing can be based on anything within the request (header, cookie, method, etc)
+* Blue/Green traffic splitting and Canary testing of application
+* Circuit Breaker patterns
+* Redirects and Error Pages
+
+See the https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources[Documentation]
+for more information.
+
+=== Usage without Ingress Controller
+
+The Service should point to an NGINX Plus Ingress Controller (to provide additional ADC features), but it could also point to the
+application directly.
+
+== Setting Up and Building
+
+You will need the https://sdk.operatorframework.io/docs/install-operator-sdk/[Operator-SDK] and
+a recent version of https://www.docker.com/products/container-runtime[Docker] installed on your
+build machine.
+
+If you are playing around on a https://github.com/code-ready/crc[Codeready Containers] setup,
+then follow <<docs/codereadynotes.adoc#,these notes>> instead.
+
+=== Build the Operator 
+
+build and push the operator to your repository
+
+----
+export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
+operator-sdk build $IMAGE
+docker push $IMAGE
+----
+
+=== Install the CRDs
+
+----
+kubectl create -f deploy/crds/lb.nginx.com_controllers_crd.yaml
+kubectl create -f deploy/crds/lb.nginx.com_applications_crd.yaml
+kubectl create -f deploy/crds/lb.nginx.com_certificates_crd.yaml
+kubectl create -f deploy/crds/lb.nginx.com_components_crd.yaml
+kubectl create -f deploy/crds/lb.nginx.com_gateways_crd.yaml
+----
+
+== Deploy the Operator
+
+The Operator is namespace-scoped, so each project needs to run it's own operator. 
+
+We first need to setup the service account and role bindings for the Operator
+
+----
+kubectl create -f deploy/service_account.yaml
+kubectl create -f deploy/role.yaml
+kubectl create -f deploy/role_binding.yaml
+----
+
+Then replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
+location and name of the image you built above, and deploy.
+
+----
+export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
+sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/operator.yaml > deploy/operator-for-reals.yaml
+kubectl create -f deploy/operator-for-reals.yaml
+----
+
+That should be it. Your operator is running.
+
+== The Operator Custom Resources
+
+Below is an example for each of the Custom Resources which configure the Application.
 
 === Controller CRD
 
