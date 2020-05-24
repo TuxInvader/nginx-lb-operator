@@ -36,23 +36,23 @@ After deploying the operator it will start watching for these CRs. There are cur
 |===
 | CRD | Description | Watched
 
-| <<controller-crd[lb.nginx.com_controllers]>>
+| <<controller-crd,lb.nginx.com_controllers>>
 | Controller Configuration, Includes FQDN, Auth details, and the Environment to use.
 | No
 
-| <<application-crd[lb.nginx.com_applications]>>
+| <<application-crd,lb.nginx.com_applications>>
 | The Application as represented in NGINX Controller
 | Yes
 
-| <<gateway-crd[lb.nginx.com_gateways]>>
+| <<gateway-crd,lb.nginx.com_gateways>>
 | A Service gateway, The NGINX instances on which components will be deployed
 | Yes
 
-| <<component-crd[lb.nginx.com_components]>>
+| <<component-crd,lb.nginx.com_components>>
 | The component is deployed into an Application on a Gateway
 | Yes
 
-| <<certificate-crd[lb.nginx.com_certificates]>>
+| <<certificate-crd,lb.nginx.com_certificates>>
 | A TLS Certificate for use in a Gateway or Component
 | Yes
 |===
