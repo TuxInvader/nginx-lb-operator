@@ -31,4 +31,8 @@
     name: finalizer.cert.lb.nginx.com
     vars:
       delete: true
+- version: v1
+  group: "apps"
+  kind: Deployment
+  playbook: playbooks/deployment.yml
 

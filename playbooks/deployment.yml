@@ -1,0 +1,53 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  connection: local
+  collections:
+    - community.kubernetes
+    - operator_sdk.util
+    - nginxinc.nginx_controller
+  vars:
+    ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_COMPONENT_LB_NGINX_COM') }}"
+
+  tasks:
+
+    - name: Work around Ansible snake_casing our vars
+      set_fact:
+        spec: "{{ _apps_deployment }}"
+
+    - name: Dump the Resource
+      debug:
+        msg: "{{ spec }}"
+      when: ansible_verbosity > 2
+
+    - name: Get and Update the Component
+      block:
+
+      - name: Get the Component
+        k8s_info:
+          kind: Component
+          api_version: lb.nginx.com/v1alpha1
+          name: "{{ spec.metadata.labels['nginx-lb-component'] }}"
+          namespace: "{{ meta.namespace }}"
+        register: component
+
+      - name: Dump the Component
+        debug:
+          msg: "{{ component }}"
+        when: ansible_verbosity > 2
+
+      - name: Update the component
+        k8s:
+          kind: Component
+          api_version: lb.nginx.com/v1alpha1
+          name: "{{ spec.metadata.labels['nginx-lb-component'] }}"
+          namespace: "{{ meta.namespace }}"
+          definition:
+            metadata:
+              annotations:
+                updated: "{{ ansible_date_time.epoch }}"
+        when: component.resources.0 is defined
+
+      when: ( spec.metadata.labels is defined ) and
+            ( spec.metadata.labels["nginx-lb-component"] is defined )
+
