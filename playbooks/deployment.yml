@@ -20,6 +20,28 @@
         msg: "{{ spec }}"
       when: ansible_verbosity > 2
 
+    - name: Brief Pause
+      pause:
+        seconds: 2
+
+    - name: Wait for Kubernetes to complete pod changes
+      k8s:
+        kind: Deployment
+        api_version: v1
+        name: "{{ meta.name }}"
+        namespace: "{{ meta.namespace }}"
+      register: deployment_status
+      until: (deployment_status.result is defined) and
+             (deployment_status.result.spec.replicas == deployment_status.result.status.availableReplicas )
+      retries: 10
+      delay: 2
+
+    - name: "Store the component name"
+      set_fact:
+        nginx_lb_component: "{{  spec.metadata.labels['nginx-lb-component'] }}"
+      when: ( spec.metadata.labels is defined ) and
+            ( spec.metadata.labels["nginx-lb-component"] is defined )
+
     - name: Get and Update the Component
       block:
 
@@ -36,18 +58,24 @@
           msg: "{{ component }}"
         when: ansible_verbosity > 2
 
-      - name: Update the component
-        k8s:
-          kind: Component
-          api_version: lb.nginx.com/v1alpha1
-          name: "{{ spec.metadata.labels['nginx-lb-component'] }}"
-          namespace: "{{ meta.namespace }}"
-          definition:
-            metadata:
-              annotations:
-                updated: "{{ ansible_date_time.epoch }}"
+      - name: Perform the Component update 
+        block:
+
+        - name: setup component environment
+          set_fact:
+            meta:
+              name: "{{ component.resources.0.metadata.name }}"
+              namespace: "{{ component.resources.0.metadata.namespace }}"
+            spec: "{{ component.resources.0.spec }}"
+            controller: "{{ component.resources.0.spec.controller }}"
+
+        - name: Setup Connection to Controller
+          import_tasks: tasks/setup_env.yml
+
+        - name: Setup the Component
+          import_tasks: tasks/component.yml
+
         when: component.resources.0 is defined
 
-      when: ( spec.metadata.labels is defined ) and
-            ( spec.metadata.labels["nginx-lb-component"] is defined )
+      when: nginx_lb_component is defined
 

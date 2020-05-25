@@ -44,7 +44,7 @@
             node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
           with_list: "{{ pod_info | json_query( pod_name_query ) }}"
           vars:
-            pod_name_query: "resources[*].status.hostIP"
+            pod_name_query: "resources[?metadata.deletionTimestamp == ''].status.hostIP"
           when: spec.workload.crcOverride is undefined
 
         - name: Use CRC Override IP for workload list
@@ -62,7 +62,7 @@
             node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ spec.workload.targetPort ~ ( spec.workload.path | default() ) ] }}"
           with_list: "{{ pod_info | json_query( pod_name_query ) }}"
           vars:
-            pod_name_query: "resources[*].status.podIP"
+            pod_name_query: "resources[? ! contains(keys(metadata),'deletionTimestamp')].status.podIP"
 
       when: service_info.resources.0.spec.type != "NodePort"
 
@@ -75,6 +75,27 @@
       set_fact:
         spec: "{{ spec | default({}) | combine( { 'desiredState':{ 'backend':{ 'workloadGroups':{ 'group':{ 'uris': { item: {}} }}}}}, recursive=True) }}"
       with_list: "{{ node_ips }}"
+
+    - name: set the gatewayRefs
+      set_fact:
+        spec: "{{ spec | default({}) | combine( { 'desiredState': { 'ingress':{ 'gatewayRefs': [ { 'ref': '/services/environments/' ~ nginx_controller_environmentName ~ '/gateways/' ~ meta.namespace ~ '.' ~ spec.gateway } ] }}}, recursive=True) }}"
+
+    - name: Dump the final spec
+      debug:
+        msg: "{{ spec }}"
+      when: ansible_verbosity > 2
+
+    - name: Send the configuration to controller
+      include_role:
+        name: nginxinc.nginx_controller.nginx_controller_component
+      vars:
+        nginx_controller_appName: "{{ meta.namespace ~ '.' ~ spec.application }}"
+        nginx_controller_component:
+          metadata:
+            name: "{{ meta.name }}"
+            displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+            description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
+          desiredState: "{{ spec.desiredState | default({}) }}"
 
 ...
 
