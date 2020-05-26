@@ -44,7 +44,7 @@
             node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
           with_list: "{{ pod_info | json_query( pod_name_query ) }}"
           vars:
-            pod_name_query: "resources[?metadata.deletionTimestamp == ''].status.hostIP"
+            pod_name_query: "resources[? ! contains(keys(metadata),'deletionTimestamp')].status.hostIP"
           when: spec.workload.crcOverride is undefined
 
         - name: Use CRC Override IP for workload list
