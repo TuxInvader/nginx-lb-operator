@@ -30,31 +30,27 @@ the configuration will try to reach the pods directly.
 
 The Operator includes several https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/[Custom Resources]
 which it watches for configuration. The CRs largely tie into the Controllers Application Centric View.
-After deploying the operator it will start watching for these CRs. There are currently 5 CRs, and 4 of them are watched.
+After deploying the operator it will start watching for these CRs. There are currently 5 CRs, the operator watches them
+and also `Deployment.apps` for changes.
 
 .CRDs
 |===
-| CRD | Description | Watched
+| CRD | Description
 
 | <<controller-crd,lb.nginx.com_controllers>>
 | Controller Configuration, Includes FQDN, Auth details, and the Environment to use.
-| No
 
 | <<application-crd,lb.nginx.com_applications>>
 | The Application as represented in NGINX Controller
-| Yes
 
 | <<gateway-crd,lb.nginx.com_gateways>>
 | A Service gateway, The NGINX instances on which components will be deployed
-| Yes
 
 | <<component-crd,lb.nginx.com_components>>
 | The component is deployed into an Application on a Gateway
-| Yes
 
 | <<certificate-crd,lb.nginx.com_certificates>>
 | A TLS Certificate for use in a Gateway or Component
-| Yes
 |===
 
 The `Controller` needs to be configured first because it holds connection information for the NGINX Controller.
