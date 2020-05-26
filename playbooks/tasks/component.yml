@@ -54,7 +54,7 @@
 
       when: service_info.resources.0.spec.type == "NodePort"
 
-    - name: Build workgroup for NodePort deployment
+    - name: Build workgroup for Direct2Pod deployment
       block:
 
         - name: Generate the workload list

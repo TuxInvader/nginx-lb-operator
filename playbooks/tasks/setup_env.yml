@@ -1,4 +1,10 @@
 ---
+
+    - name: Fail when controller is in different namespace
+      fail:
+        msg: You may not reference controllers in other namespaces
+      when: controller is defined and ( '/' in controller )
+
     - name: Get the Controller Details
       k8s_info:
         kind: Controller
@@ -6,35 +12,86 @@
         name: "{{ controller }}"
         namespace: "{{ meta.namespace }}"
       register: ctl_info
+      when: resource_type != "Controller"
 
-    - name: Get the Secret password or token
-      k8s_info:
-        kind: Secret
-        name: "{{ ctl_info.resources.0.spec.secret }}"
-        namespace: "{{ meta.namespace }}"
-      register: ctl_creds
+    - name: Add this instance to ctl_info
+      set_fact:
+        ctl_info: "{{ ctl_info | combine( {'resources':[ {'spec': spec, 'metadata':{ 'name': meta.name, 'namespace': meta.namespace } } ]} ) }}"
+      when: resource_type == "Controller"
+
+    - name: Fail when secret is in different namespace
+      fail:
+        msg: You may not reference secrets in other namespaces
+      when: "'/' in ctl_info.resources.0.spec.secret"
+
+    - name: Set the controller Auth cache file
+      set_fact:
+        token_cache: "{{ '/tmp/ctl-' ~ meta.namespace ~ '/' ~ ctl_info.resources.0.metadata.namespace ~ '.' ~ ctl_info.resources.0.metadata.name ~ '_' ~ ctl_info.resources.0.spec.secret ~ '.auth' }}"
+
+    - name: Wait for the Controller to Authorize on startup
+      wait_for:
+        path: "{{ token_cache }}"
+        state: present
+        sleep: 1
+        timeout: 15
+      ignore_errors: yes
+      when: resource_type != "Controller"
+
+    - name: Stat the controller Auth cache
+      stat:
+        path: "{{ token_cache }}"
+      register: token_stat
+
+    - name: Dump Auth Cache Status
+      debug:
+        msg: 
+          auth_cache_file: "{{ token_cache }}"
+          auth_cache_stat: "{{ token_stat }}"
+      when: ansible_verbosity > 2
 
     - name: Create Controller facts
       set_fact:
         nginx_controller_user_email: "{{ ctl_info.resources.0.spec.user_email }}"
         nginx_controller_fqdn: "{{ ctl_info.resources.0.spec.fqdn }}"
         nginx_controller_validate_certs: "{{ ctl_info.resources.0.spec.validate_certs }}"
-        nginx_controller_user_password: "{{ ctl_creds.resources.0.data.user_password | b64decode }}"
-        nginx_controller_auth_token: "{{ ctl_creds.resources.0.data.auth_token | default('') | b64decode }}"
         nginx_controller_environmentName: "{{ ctl_info.resources.0.spec.environment }}"
 
-    - name: Login or refresh the Controller token
+    - name: Login and Refresh the Auth Token
       block:
+
+      - name: Ensure the auth token directory exists
+        file:
+          path: "{{ '/tmp/ctl-' ~ meta.namespace }}"
+          mode: "0700"
+          state: directory
+
+      - name: Get the Secret password
+        k8s_info:
+          kind: Secret
+          name: "{{ ctl_info.resources.0.spec.secret }}"
+          namespace: "{{ meta.namespace }}"
+        register: ctl_creds
+
+      - name: Create Controller facts
+        set_fact:
+          nginx_controller_user_password: "{{ ctl_creds.resources.0.data.user_password | b64decode }}"
 
       - name: Retrieve the NGINX Controller auth token
         include_role:
           name: nginxinc.nginx_controller.nginx_controller_generate_token
 
-      - name: Update the K8s Secret
-        k8s:
-          state: present
-          definition: "{{ ctl_creds.resources.0 | combine({ 'metadata': { 'annotations': { 'login_time': ansible_date_time.epoch }}}, recursive=True) | combine({ 'data': { 'auth_token': (nginx_controller_auth_token | b64encode) }}, recursive=True) | to_yaml }}"
+      - name: Store the token in the cache
+        copy:
+          dest: "{{ token_cache }}"
+          mode: "0600"
+          content: "{{ nginx_controller_auth_token }}"
 
-      when: ( ctl_creds.resources.0.metadata.annotations.login_time | default(0) | int ) < ( (ansible_date_time.epoch |int) - 1800 )
+      when: ( token_stat.stat.exists == False ) or ( ( token_stat.stat.mtime |int) <= ( (ansible_date_time.epoch |int) - 1800 ) )
+
+    - name: Use Cached Auth Token
+      set_fact:
+        nginx_controller_auth_token: "{{ lookup('file', token_cache) }}"
+      when: ( token_stat.stat.exists ) and ( ( token_stat.stat.mtime |int) > ( (ansible_date_time.epoch |int) - 1800 ) )
+
 ...
 

@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  connection: local
+  collections:
+    - community.kubernetes
+    - operator_sdk.util
+    - nginxinc.nginx_controller
+  vars:
+    #ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_CONTROLLER_LB_NGINX_COM') }}"
+    ansible_verbosity: 2
+    resource_type: "Controller"
+
+  tasks:
+
+    - name: Work around Ansible snake_casing our vars
+      set_fact:
+        spec: "{{ _lb_nginx_com_controller_spec }}"
+
+    - name: Setup Connection to Controller
+      import_tasks: tasks/setup_env.yml
+
+

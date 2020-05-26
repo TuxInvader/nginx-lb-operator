@@ -1,6 +1,10 @@
 ---
 - version: v1alpha1
   group: lb.nginx.com
+  kind: Controller
+  playbook: playbooks/controller.yml
+- version: v1alpha1
+  group: lb.nginx.com
   kind: Application
   playbook: playbooks/application.yml
   finalizer:

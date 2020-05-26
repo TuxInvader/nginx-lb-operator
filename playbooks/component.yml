@@ -8,6 +8,7 @@
     - nginxinc.nginx_controller
   vars:
     ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_COMPONENT_LB_NGINX_COM') }}"
+    resource_type: "Component"
 
   tasks:
 

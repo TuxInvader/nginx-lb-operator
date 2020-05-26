@@ -8,6 +8,7 @@
     - nginxinc.nginx_controller
   vars:
     ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_CERTIFICATE_LB_NGINX_COM') }}"
+    resource_type: "Certificate"
 
   tasks:
 
