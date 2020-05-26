@@ -58,7 +58,25 @@ All of the other resources require a `Controller` object. The `Application` and 
 dependencies. The `Gateway` may require a `Certificate` if the service is using TLS, and the `Component` links all
 other object together to form the "Application Endpoint".
 
-The Kubernetes Service should be set in the `Component` in the `spec.ingress` setting.
+The Kubernetes `Service` should be named in the `Component` resource under the `spec.ingress` setting.
+
+=== Deployment Scaling
+
+If you want the Operator to update the workgroups in your `Component` when your `Deployment` is scaled, then you should add a label
+to the metadata called `nginx-lb-component` and set it to the name of the `Component` to be updated. Eg:
+
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatcheese-www
+  namespace: ingress-dev
+  labels:
+    app: whatcheese-www
+    nginx-lb-component: whatcheese-www
+    ...
+
+----
 
 === Usage with Ingress Controller
 
