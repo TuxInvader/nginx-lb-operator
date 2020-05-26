@@ -93,7 +93,7 @@
         nginx_controller_component:
           metadata:
             name: "{{ meta.name }}"
-            displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+            displayName: "{{ spec.displayName | default( meta.name) }}"
             description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
           desiredState: "{{ spec.desiredState | default({}) }}"
 
