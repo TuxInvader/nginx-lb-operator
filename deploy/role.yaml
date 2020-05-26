@@ -67,6 +67,12 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - apps
+  resources:
+  - deployments/status
+  verbs:
+  - update
+- apiGroups:
   - lb.nginx.com
   resources:
   - '*'
