@@ -42,13 +42,6 @@
         path: "{{ token_cache }}"
       register: token_stat
 
-    - name: Dump Auth Cache Status
-      debug:
-        msg: 
-          auth_cache_file: "{{ token_cache }}"
-          auth_cache_stat: "{{ token_stat }}"
-      when: ansible_verbosity > 2
-
     - name: Create Controller facts
       set_fact:
         nginx_controller_user_email: "{{ ctl_info.resources.0.spec.user_email }}"
@@ -72,7 +65,7 @@
           namespace: "{{ meta.namespace }}"
         register: ctl_creds
 
-      - name: Create Controller facts
+      - name: Add Controller user_password fact
         set_fact:
           nginx_controller_user_password: "{{ ctl_creds.resources.0.data.user_password | b64decode }}"
 
