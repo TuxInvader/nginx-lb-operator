@@ -10,17 +10,39 @@
           namespace: "{{ meta.namespace }}"
         register: cert
 
-      - name: Set desiredState
-        set_fact:
-          desiredState:
-            type: "{{ cert.resources.0.data.type | default('') | b64decode }}"
-            password: "{{ cert.resources.0.data.password | default('') | b64decode }}"
-            privateKey: "{{ cert.resources.0.data['tls.key'] | default('') | b64decode }}"
-            publicCert: "{{ cert.resources.0.data['tls.crt'] | default('') | b64decode }}"
+      - name: Override any desiredState with data from the secret
+        block:
+    
+        - name: Override type from secret
+          set_fact:
+            desiredState: "{{ desiredState | default({}) | combine( {'type': cert.resources.0.data.type | b64decode }) }}"
+          when: cert.resources.0.data.type | default('') | length > 0
+
+        - name: Override password from secret
+          set_fact:
+            desiredState: "{{ desiredState | default({}) | combine( {'password': cert.resources.0.data.password | b64decode }) }}"
+          when: cert.resources.0.data.password | default('') | length > 0
+
+        - name: Override TLS Cert from secret
+          set_fact:
+            desiredState: "{{ desiredState | default({}) | combine( {'publicCert': cert.resources.0.data['tls.crt'] | b64decode }) }}"
+          when: cert.resources.0.data['tls.crt'] | default('') | length > 0
+
+        - name: Override TLS Key from secret
+          set_fact:
+            desiredState: "{{ desiredState | default({}) | combine( {'privateKey': cert.resources.0.data['tls.key'] | b64decode }) }}"
+          when: cert.resources.0.data['tls.key'] | default('') | length > 0
+
+        - name: Override CA Cert from secret
+          set_fact:
+            desiredState: "{{ desiredState | default({}) | combine( {'caCerts': [ cert.resources.0.data['ca.crt'] | b64decode ] }) }}"
+          when: cert.resources.0.data['ca.crt'] | default('') | length > 0
+
+        when: cert.resources.0 is defined and cert.resources.0.data is defined
 
       - name: update spec
         set_fact:
-          spec: "{{ spec | default({}) | combine({ 'desiredState':{ desiredState }}, recursive=True) }}"
+          spec: "{{ spec | default({}) | combine({ 'desiredState': desiredState }, recursive=True) }}"
 
       when: spec.secret is defined
 
