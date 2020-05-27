@@ -30,8 +30,12 @@ the configuration will try to reach the pods directly.
 
 The Operator includes several https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/[Custom Resources]
 which it watches for configuration. The CRs largely tie into the Controllers Application Centric View.
-After deploying the operator it will start watching for these CRs. There are currently 5 CRs, the operator watches them
-and also `Deployment.apps` for changes.
+After deploying the operator it will start watching for these CRs.
+
+There are currently 5 Custom Resources watched by the operator and it also watches `Deployment.apps`.
+
+When a resource which is being watched is modifed a reconciliation process happens using the playbook specified in
+the `watches.yaml` file. 
 
 .CRDs
 |===
@@ -53,12 +57,28 @@ and also `Deployment.apps` for changes.
 | A TLS Certificate for use in a Gateway or Component
 |===
 
-The `Controller` needs to be configured first because it holds connection information for the NGINX Controller.
-All of the other resources require a `Controller` object. The `Application` and `Certificate` objects have no other
-dependencies. The `Gateway` may require a `Certificate` if the service is using TLS, and the `Component` links all
-other object together to form the "Application Endpoint".
+The `Controller` needs to be configured first because it holds connection information for the NGINX Controller. This
+includes the `user_email`, `fqdn`, `environment` and a reference to a `Secret` resource holding the `user_password`.
 
-The Kubernetes `Service` should be named in the `Component` resource under the `spec.ingress` setting.
+All of the other resources require a `Controller` resource. The `Application` and `Certificate` resources have no other
+dependencies. The `Gateway` may require a `Certificate` if the service is using TLS, and the `Component` links all
+other resources together to form the "Application Endpoint".
+
+The Kubernetes `Service` which makes up the workgroup (`pool` or `upstream` if you prefer) should be named in the
+`Component` resource under the `spec.ingress` setting.
+
+=== Desired State
+
+The controller uses a declarative API, and the configuration is supplied in a `desiredState` object.
+
+You can suppply the `desiredState` in the `Gateway`,`Component`, and `Certificate` resources and that state will be
+sent to the controller. With the following caveats:
+
+* Gateway: The desiredState is used as is to create a new gateway object. The gateway will be called `namespace.name` in controller
+* Certificate: The `desiredState` can be taken from the resource directly or merged with data from a kubernetes `Secret`. Any fields
+  set in the optional `Secret` will take precedence over those given in `desiredState`.
+* Component: The `desiredState` can enable any controller functionality, but the ingress gateway will be overwritten by a link to the
+  `Gateway` set on the resource, and the backend workload group URIs list will be populated from the `Service` named in `spec.ingress`
 
 === Deployment Scaling
 
@@ -168,7 +188,7 @@ Below is an example for each of the Custom Resources which configure the Applica
 
 === Controller CRD
 
-The controller CRD take a user_email, FQDN, and Environment. It also needs a password stored in a Kubernetes Secret
+The `Controller` CRD take a user_email, FQDN, and Environment. It also needs a password stored in a Kubernetes `Secret`
 
 Such as: 
 
@@ -183,10 +203,10 @@ data:
 type: Opaque
 ----
 
-The secret will be updated by the operator with an oath_token and a login_timestamp. The Operator will reuse the oath token for
-30 minutes, after which it will perform a new login.
+The Operator will use the `user_password` in the `Secret`, with the `user_email` in the `Controller` resource to log in and retrieve
+an auth token. The auth token will be cached for 30 minutes, after which time the next reconciliation will perform a new login.
 
-A controller object using the above secret would look like this:
+A `Controller` resource using the above secret would look like this:
 
 [source,yaml]
 ----
@@ -203,7 +223,7 @@ spec:
 ----
 
 The user account and the environment should already exist on the controller. All Applications, Gateways, Components, and Certificates
-will reference a controller object by name and be deployed into the environment specified.
+will reference a Controller resource by name and be deployed into the environment specified.
 
 === Application CRD
 
@@ -377,7 +397,7 @@ spec:
       -----END CERTIFICATE-----
 ----
 
-When referencing the cert as a kubernetes secret, then it should be an Opaque type and
+When referencing the cert as a kubernetes secret, then it should be an Opaque or tls type and
 the certificate details should be stored in `tls.key` and `tls.crt`. 
 
 ----
