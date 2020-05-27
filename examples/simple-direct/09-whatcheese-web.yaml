@@ -1,0 +1,47 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatcheese-web
+  namespace: simple-ingress-demo
+  labels:
+    app: whatcheese-web
+    nginx-lb-component: whatcheese-web
+spec:
+  selector:
+    matchLabels:
+      app: whatcheese-web
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: whatcheese-web
+    spec:
+      containers:
+      - name: whatcheese-web
+        image: tuxinvader/whatcheese-web:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 443
+        - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: whatcheese-web
+  namespace: simple-ingress-demo
+spec:
+  selector:
+    app: whatcheese-web
+  type: NodePort
+  #type: ClusterIP
+  #clusterIP: None
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP

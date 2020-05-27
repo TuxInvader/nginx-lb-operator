@@ -1,0 +1,9 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Application
+metadata:
+  name: whatcheese
+  namespace: simple-ingress-demo
+spec:
+  controller: "dev-controller"
+  displayName: "Whatcheese App"
+  description: "An application deployed by Kubernetes"

@@ -1,0 +1,36 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
+metadata:
+  name: whatcheese-web
+  namespace: simple-ingress-demo
+spec:
+  # Add fields here
+  controller: "dev-controller"
+  application: "whatcheese"
+  ingress: "whatcheese-web"
+  gateway: "whatcheese-gw"
+  workload:
+    scheme: "http"
+    path: "/"
+    targetPort: 80
+  displayName: "Whatcheese Web"
+  description: "The main Website"
+  desiredState:
+    backend:
+      monitoring:
+        response:
+          status:
+            match: true
+            range:
+              endCode: 302
+              startCode: 200
+        uri: /
+      workloadGroups:
+        # group uris will be populated from "ingress" pods or nodeports
+        group:
+          loadBalancingMethod:
+            type: ROUND_ROBIN
+    # ingress gatewayRefs will be populated from "gateway"
+    ingress:
+      uris:
+        /: {}
