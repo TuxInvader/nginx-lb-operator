@@ -12,11 +12,19 @@ spec:
   scope: Namespaced
   subresources:
     status: {}
+  preserveUnknownFields: false
   validation:
     openAPIV3Schema:
       type: object
-      x-kubernetes-preserve-unknown-fields: true
       properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this resource'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.'
+          type: string
+        metadata:
+          type: object
         spec:
           type: object
           properties:
@@ -26,10 +34,11 @@ spec:
               type: string
             fqdn:
               type: string
-            environmentname:
+            environment:
               type: string
             validate_certs:
               type: boolean
+
   versions:
   - name: v1alpha1
     served: true

@@ -12,36 +12,48 @@ spec:
   scope: Namespaced
   subresources:
     status: {}
+  preserveUnknownFields: false
   validation:
     openAPIV3Schema:
       type: object
-      x-kubernetes-preserve-unknown-fields: true
       properties:
-        controller:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this resource'
           type: string
-        application:
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.'
           type: string
-        gateway:
-          type: string
-        ingress:
-          type: string
-        workload:
+        metadata:
+          type: object
+        spec:
           type: object
           properties:
-            scheme:
+            controller:
               type: string
-            path:
+            application:
               type: string
-            targetPort:
-              type: integer
-            crcOverride:
+            gateway:
               type: string
-        displayName:
-          type: string
-        description:
-          type: string
-        desiredState:
-          type: object
+            ingress:
+              type: string
+            workload:
+              type: object
+              properties:
+                scheme:
+                  type: string
+                path:
+                  type: string
+                targetPort:
+                  type: integer
+                crcOverride:
+                  type: string
+            displayName:
+              type: string
+            description:
+              type: string
+            desiredState:
+              x-kubernetes-preserve-unknown-fields: true
+              type: object
 
   versions:
   - name: v1alpha1
