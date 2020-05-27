@@ -7,6 +7,7 @@ spec:
   controller: "dev-controller"
   displayName: "My OCP Gateway"
   description: "A gateway deployed by Kubernetes"
+  certificate: "foo-bar-cert"
   desiredState:
     ingress:
       placement:
@@ -14,5 +15,12 @@ spec:
           - ref: /infrastructure/locations/unspecified/instances/2
       uris:
         'http://foo.bar.com': {}
-        'http://www.foo.bar.com': {}
+        'https://www.foo.bar.com': {}
+      tls:
+        # A CertRef section will be populate by the operator from the Certificate reference
+        protocols:
+          - TLSv1.2
+          - TLSv1.3
+        preferServerCipher: DISABLED
+        sessionCache: SHARED
 

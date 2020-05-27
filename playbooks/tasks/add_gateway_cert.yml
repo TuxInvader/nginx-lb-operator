@@ -1,0 +1,26 @@
+---
+
+    - name: Get the certificate from K8s
+      block:
+
+      - name: Load the secret
+        k8s_info:
+          kind: Certificate
+          api_version: lb.nginx.com/v1alpha1
+          name: "{{ spec.certificate }}"
+          namespace: "{{ meta.namespace }}"
+        register: cert
+
+      - name: Generate a CertRef from Certificate
+        set_fact:
+          cert_ref: "{{ '/services/environments/' ~ nginx_controller_environmentName ~ '/certs/' ~ cert.resources.0.metadata.namespace ~ '.' ~ cert.resources.0.metadata.name  }}"
+
+      - name: Add CertRef to the desiredState
+        set_fact:
+          spec:
+            desiredState: "{{ spec.desiredState | default({}) | combine( {'ingress':{ 'tls':{ 'certRef': { 'ref': cert_ref }}}}, recursive=True) }}"
+
+      when: spec.certificate is defined
+
+...
+

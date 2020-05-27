@@ -19,6 +19,9 @@
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml
 
+    - name: Add the Certificate reference
+      import_tasks: tasks/add_gateway_cert.yml
+
     - name: Dump the final spec
       debug:
         msg: "{{ spec }}"
