@@ -61,7 +61,7 @@ echo YourControllerPassword | base64
 
 Update the manifest with your password
 
-.20-controller-secret
+.20-controller-secret.yaml
 [source,yaml]
 ----
 apiVersion: v1
