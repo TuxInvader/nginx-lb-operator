@@ -59,9 +59,10 @@ a base64 encoded version of your password. Eg:
 echo YourControllerPassword | base64
 ----
 
-The update the manifest
+Update the manifest with your password
 
 .20-controller-secret
+[source,yaml]
 ----
 apiVersion: v1
 kind: Secret
@@ -78,6 +79,7 @@ password you have just encoded above, and the FQDN of the controller, and the En
 has write permissions.
 
 .21-controller.yaml
+[source,yaml]
 ----
 apiVersion: lb.nginx.com/v1alpha1
 kind: Controller
@@ -105,6 +107,7 @@ You will need to check that the `instanceRef` in `50-gateway.yaml` matches the N
 the config deployed. You may change the hostname of the service in this file too if you wish.
 
 .50-gateway.yaml
+[source,yaml]
 ----
 apiVersion: lb.nginx.com/v1alpha1
 kind: Gateway
