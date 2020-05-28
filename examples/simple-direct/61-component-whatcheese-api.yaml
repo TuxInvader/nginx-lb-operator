@@ -7,7 +7,7 @@ spec:
   # Add fields here
   controller: "dev-controller"
   application: "whatcheese"
-  ingress: "whatcheese-web"
+  ingress: "whatcheese-api"
   gateway: "whatcheese-gw"
   workload:
     scheme: "http"
@@ -22,9 +22,9 @@ spec:
           status:
             match: true
             range:
-              endCode: 302
               startCode: 200
-        uri: /
+              endCode: 200
+        uri: /v1/links
       workloadGroups:
         # group uris will be populated from "ingress" pods or nodeports
         group:
