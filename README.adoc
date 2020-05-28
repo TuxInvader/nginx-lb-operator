@@ -19,6 +19,8 @@ NGINX configuration which incorporates all services and pushes it out to NGINX w
 This allows multiple "projects" or "namespaces" to deploy configuration to the same or different NGINX
 instances.
 
+There is a complete example walk through in the examples folder.
+
 === How does it work?
 
 The operator configures an external NGINX instance (via controller) to Load Balance onto a
@@ -181,8 +183,6 @@ kubectl create -f deploy/operator-for-reals.yaml
 ----
 
 That should be it. Your operator is running.
-
-There is a complete example walk through in the examples folder.
 
 == The Operator Custom Resources
 

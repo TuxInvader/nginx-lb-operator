@@ -59,9 +59,38 @@ a base64 encoded version of your password. Eg:
 echo YourControllerPassword | base64
 ----
 
+The update the manifest
+
+.20-controller-secret
+----
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: controller
+  namespace: simple-ingress-demo
+data:
+  user_password: WW91ckNvbnRyb2xsZXJQYXNzd29yZAo=
+----
+
 Then modify `21-controller.yaml` to have the details for your controller. That is the user_email who's
 password you have just encoded above, and the FQDN of the controller, and the Environment which the user
 has write permissions.
+
+.21-controller.yaml
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Controller
+metadata:
+  name: dev-controller
+  namespace: simple-ingress-demo
+spec:
+  user_email: "dev1@nginx.com"
+  secret: "controller"
+  fqdn: "controller.example.com"
+  environment: "aks-dev"
+  validate_certs: false
+----
 
 Once modified, apply them
 
@@ -74,6 +103,34 @@ You can now apply the rest of the manifests in order to deploy the Application c
 
 You will need to check that the `instanceRef` in `50-gateway.yaml` matches the NGINX Instance ID where you want
 the config deployed. You may change the hostname of the service in this file too if you wish.
+
+.50-gateway.yaml
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Gateway
+metadata:
+  name: whatcheese-gw
+  namespace: simple-ingress-demo
+spec:
+  controller: "dev-controller"
+  displayName: "Dev Gateway"
+  description: "A gateway deployed by Kubernetes"
+  certificate: "whatcheese"
+  desiredState:
+    ingress:
+      placement:
+        instancerefs:
+          - ref: /infrastructure/locations/unspecified/instances/2
+      uris:
+        'http://*.whatcheese.nginx.demo': {}
+        'https://*.whatcheese.nginx.demo': {}
+      tls:
+        protocols:
+          - TLSv1.2
+          - TLSv1.3
+        preferServerCipher: DISABLED
+        sessionCache: SHARED
+----
 
 When you get to the `60-component-whatcheese*` manifest, you can chose to deploy with or without App Protect,
 depending on if you have the AP WAF module installed on your NGINX Plus instance.
