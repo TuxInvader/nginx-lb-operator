@@ -21,4 +21,17 @@
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml
 
+    - name: Remove the Controller
+      block:
+
+      - name: Set the controller Auth cache file
+        set_fact:
+          token_cache: "{{ '/tmp/ctl-' ~ meta.namespace ~ '/' ~ meta.namespace ~ '.' ~ meta.name ~ '_' ~ spec.secret ~ '.auth' }}"
+
+      - name: Remove cached credentials
+        file:
+          path: "{{ token_cache }}"
+          state: absent
+
+      when: delete is defined
 

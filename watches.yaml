@@ -3,6 +3,10 @@
   group: lb.nginx.com
   kind: Controller
   playbook: playbooks/controller.yml
+  finalizer:
+    name: finalizer.ctrl.lb.nginx.com
+    vars:
+      delete: true
 - version: v1alpha1
   group: lb.nginx.com
   kind: Application
