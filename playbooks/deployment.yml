@@ -17,6 +17,18 @@
         spec: "{{ _apps_deployment_spec }}"
         resource: "{{ _apps_deployment }}"
 
+    - name: End Play if label not set
+      block:
+
+        - name: Ending Playbook
+          debug:
+            msg: This Deployment has no 'nginx-lb-component' label
+
+        - meta: end_play
+
+      when: ( resource.metadata.labels is undefined ) or
+            ( resource.metadata.labels["nginx-lb-component"] is undefined )
+
     - name: Dump the Resource
       debug:
         msg: "{{ resource }}"
