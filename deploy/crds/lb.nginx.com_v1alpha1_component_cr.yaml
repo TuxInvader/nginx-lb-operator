@@ -6,7 +6,8 @@ spec:
   # Add fields here
   controller: "dev-controller"
   application: "my-application"
-  ingress: "my-nginx-ingress-controller"
+  ingressService: "nginx-plus"
+  ingressNamespace: "nginx-ingress"
   gateway: "my-gateway"
   workload:
     scheme: "http"

@@ -34,7 +34,9 @@ spec:
               type: string
             gateway:
               type: string
-            ingress:
+            ingressService:
+              type: string
+            ingressNamespace:
               type: string
             workload:
               type: object
