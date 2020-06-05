@@ -14,11 +14,12 @@
 
     - name: Work around Ansible snake_casing our vars
       set_fact:
-        spec: "{{ _apps_deployment }}"
+        spec: "{{ _apps_deployment_spec }}"
+        resource: "{{ _apps_deployment }}"
 
     - name: Dump the Resource
       debug:
-        msg: "{{ spec }}"
+        msg: "{{ resource }}"
       when: ansible_verbosity > 2
 
     - name: Brief Pause
@@ -39,9 +40,9 @@
 
     - name: "Store the component name"
       set_fact:
-        nginx_lb_component: "{{  spec.metadata.labels['nginx-lb-component'] }}"
-      when: ( spec.metadata.labels is defined ) and
-            ( spec.metadata.labels["nginx-lb-component"] is defined )
+        nginx_lb_component: "{{  resource.metadata.labels['nginx-lb-component'] }}"
+      when: ( resource.metadata.labels is defined ) and
+            ( resource.metadata.labels["nginx-lb-component"] is defined )
 
     - name: Get and Update the Component
       block:
@@ -50,7 +51,7 @@
         k8s_info:
           kind: Component
           api_version: lb.nginx.com/v1alpha1
-          name: "{{ spec.metadata.labels['nginx-lb-component'] }}"
+          name: "{{ resource.metadata.labels['nginx-lb-component'] }}"
           namespace: "{{ meta.namespace }}"
         register: component
 

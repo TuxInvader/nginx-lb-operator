@@ -15,6 +15,7 @@
     - name: Work around Ansible snake_casing our vars
       set_fact:
         spec: "{{ _lb_nginx_com_component_spec }}"
+        resource: "{{ _lb_nginx_com_component }}"
 
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml

@@ -15,11 +15,12 @@
     - name: Work around Ansible snake_casing our vars
       set_fact:
         spec: "{{ _lb_nginx_com_application_spec }}"
+        resource: "{{ _lb_nginx_com_application }}"
 
     - name: Setup Connection to Controller
       import_tasks: tasks/setup_env.yml
 
-    - name: Dump the final spec
+    - name: Dump the final sec
       debug:
         msg: "{{ spec }}"
       when: ansible_verbosity > 2
