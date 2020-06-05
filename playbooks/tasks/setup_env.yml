@@ -49,6 +49,10 @@
         nginx_controller_validate_certs: "{{ ctl_info.resources.0.spec.validate_certs }}"
         nginx_controller_environmentName: "{{ ctl_info.resources.0.spec.environment }}"
 
+    - name: Get the time
+      shell: "date +%s"
+      register: date
+
     - name: Login and Refresh the Auth Token
       block:
 
@@ -79,12 +83,12 @@
           mode: "0600"
           content: "{{ nginx_controller_auth_token }}"
 
-      when: ( token_stat.stat.exists == False ) or ( ( token_stat.stat.mtime |int) <= ( (ansible_date_time.epoch |int) - 1800 ) )
+      when: ( token_stat.stat.exists == False ) or ( ( token_stat.stat.mtime |int) <= ( ( date.stdout |int) - 1800 ) )
 
     - name: Use Cached Auth Token
       set_fact:
         nginx_controller_auth_token: "{{ lookup('file', token_cache) }}"
-      when: ( token_stat.stat.exists ) and ( ( token_stat.stat.mtime |int) > ( (ansible_date_time.epoch |int) - 1800 ) )
+      when: ( token_stat.stat.exists ) and ( ( token_stat.stat.mtime |int) > ( ( date.stdout |int) - 1800 ) )
 
 ...
 
