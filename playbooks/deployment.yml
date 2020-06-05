@@ -7,7 +7,7 @@
     - operator_sdk.util
     - nginxinc.nginx_controller
   vars:
-    ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_COMPONENT_LB_NGINX_COM') }}"
+    ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_DEPLOYMENT_APPS') }}"
     resource_type: "Deployment"
 
   tasks:

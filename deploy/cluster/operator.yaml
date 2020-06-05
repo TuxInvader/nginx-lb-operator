@@ -56,6 +56,10 @@ spec:
               value: "1"
             - name: WORKER_GATEWAY_LB_NGINX_COM
               value: "1"
+            - name: ANSIBLE_VERBOSITY_DEPLOYMENT_APPS
+              value: "1"
+            - name: WORKER_DEPLOYMENT_APPS
+              value: "1"
       volumes:
         - name: runner
           emptyDir: {}
