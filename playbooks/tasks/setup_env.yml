@@ -1,16 +1,17 @@
 ---
 
-    - name: Fail when controller is in different namespace
-      fail:
-        msg: You may not reference controllers in other namespaces
-      when: controller is defined and ( '/' in controller )
+    # The name space should be that of the current resource, or that of the component
+    # nginx_lb_namespace is set when a component update is triggered from a Deployment
+    - name: Set the nginx_lb Namespace
+      set_fact:
+        nginx_lb_namespace: "{{ nginx_lb_namespace | default( meta.namespace ) }}"
 
     - name: Get the Controller Details
       k8s_info:
         kind: Controller
         api_version: lb.nginx.com/v1alpha1
         name: "{{ controller }}"
-        namespace: "{{ meta.namespace }}"
+        namespace: "{{ nginx_lb_namespace }}"
       register: ctl_info
       when: resource_type != "Controller"
 
@@ -19,14 +20,14 @@
         ctl_info: "{{ ctl_info | combine( {'resources':[ {'spec': spec, 'metadata':{ 'name': meta.name, 'namespace': meta.namespace } } ]} ) }}"
       when: resource_type == "Controller"
 
-    - name: Fail when secret is in different namespace
+    - name: Fail if we can't find the Controller
       fail:
-        msg: You may not reference secrets in other namespaces
-      when: "'/' in ctl_info.resources.0.spec.secret"
+        msg: "Controller '{{ controller }}' not found in namespace '{{ nginx_lb_namespace }}'"
+      when: ctl_info.resources | length == 0
 
     - name: Set the controller Auth cache file
       set_fact:
-        token_cache: "{{ '/tmp/ctl-' ~ meta.namespace ~ '/' ~ ctl_info.resources.0.metadata.namespace ~ '.' ~ ctl_info.resources.0.metadata.name ~ '_' ~ ctl_info.resources.0.spec.secret ~ '.auth' }}"
+        token_cache: "{{ '/tmp/ctl-' ~ nginx_lb_namespace ~ '/' ~ ctl_info.resources.0.metadata.namespace ~ '.' ~ ctl_info.resources.0.metadata.name ~ '_' ~ ctl_info.resources.0.spec.secret ~ '.auth' }}"
 
     - name: Wait for the Controller to Authorize on startup
       wait_for:
@@ -58,7 +59,7 @@
 
       - name: Ensure the auth token directory exists
         file:
-          path: "{{ '/tmp/ctl-' ~ meta.namespace }}"
+          path: "{{ '/tmp/ctl-' ~ nginx_lb_namespace }}"
           mode: "0700"
           state: directory
 
@@ -66,7 +67,7 @@
         k8s_info:
           kind: Secret
           name: "{{ ctl_info.resources.0.spec.secret }}"
-          namespace: "{{ meta.namespace }}"
+          namespace: "{{ nginx_lb_namespace }}"
         register: ctl_creds
 
       - name: Add Controller user_password fact

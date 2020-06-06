@@ -1,10 +1,17 @@
 ---
+
+    # The name space should be that of the current resource, or that of the component
+    # nginx_lb_namespace is set when a component update is triggered from a Deployment
+    - name: Set the nginx_lb Namespace
+      set_fact:
+        nginx_lb_namespace: "{{ nginx_lb_namespace | default( meta.namespace ) }}"
+
     - name: Get the Ingress Service Details
       k8s_info:
         kind: Service
         api_version: v1
         name: "{{ spec.ingressService }}"
-        namespace: "{{ spec.ingressNamespace | default( meta.namespace ) }}"
+        namespace: "{{ spec.ingressNamespace | default( nginx_lb_namespace ) }}"
       register: service_info
 
     - name: Dump the Service Info
@@ -78,7 +85,7 @@
 
     - name: set the gatewayRefs
       set_fact:
-        spec: "{{ spec | default({}) | combine( { 'desiredState': { 'ingress':{ 'gatewayRefs': [ { 'ref': '/services/environments/' ~ nginx_controller_environmentName ~ '/gateways/' ~ meta.namespace ~ '.' ~ spec.gateway } ] }}}, recursive=True) }}"
+        spec: "{{ spec | default({}) | combine( { 'desiredState': { 'ingress':{ 'gatewayRefs': [ { 'ref': '/services/environments/' ~ nginx_controller_environmentName ~ '/gateways/' ~ nginx_lb_namespace ~ '.' ~ spec.gateway } ] }}}, recursive=True) }}"
 
     - name: Dump the final spec
       debug:
@@ -89,11 +96,11 @@
       include_role:
         name: nginxinc.nginx_controller.nginx_controller_component
       vars:
-        nginx_controller_appName: "{{ meta.namespace ~ '.' ~ spec.application }}"
+        nginx_controller_appName: "{{ nginx_lb_namespace ~ '.' ~ spec.application }}"
         nginx_controller_component:
           metadata:
-            name: "{{ meta.name }}"
-            displayName: "{{ spec.displayName | default( meta.name) }}"
+            name: "{{ component_name | default( meta.name ) }}"
+            displayName: "{{ spec.displayName | default( component_name | default(meta.name) ) }}"
             description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
           desiredState: "{{ spec.desiredState | default({}) }}"
 
