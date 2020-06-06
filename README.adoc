@@ -182,7 +182,7 @@ Chose one of the options below, Cluster or Namespace.
 A namespace-scoped operator can only access resources in it's own namespace, so each project needs to
 run it's own operator. 
 
-Create the `role`, `service_account`, and `role_bindings` with the manifests
+Create the `role`, `service_account`, and `role_bindings` with the manifests:
 
 ----
 kubectl create -f deploy/namespace/service_account.yaml
@@ -190,7 +190,9 @@ kubectl create -f deploy/namespace/role.yaml
 kubectl create -f deploy/namespace/role_binding.yaml
 ----
 
-Then replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
+Next we deploy the operator....
+
+Replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
 location and name of the image you built above, and deploy.
 
 ----
@@ -221,13 +223,17 @@ The above would allow the operator to create LB config for the two namespaces: `
 `Services` referenced by the project `Components` would be the NGINX KIC running in the `nginx-ingress` namespace.
 Also if the NGINX KIC deployment is scaled, then the components in the projects would be notified and reconfigured.
 
-To deploy a cluster-scoped operator, first create `ClusterRole`, `ClusterRoleBindings` and the `service_account`
+To deploy a cluster-scoped operator, first create `ClusterRole`, `ClusterRoleBindings` and the `service_account`.
+You will need to modify the `service_account` and the `role_binding` namespaces to match the namespace in which
+the operator will run. Make your modifications and the apply them:
 
 ----
 kubectl create -f deploy/cluster/service_account.yaml
 kubectl create -f deploy/cluster/role.yaml
 kubectl create -f deploy/cluster/role_binding.yaml
 ----
+
+Next we deploy the operator....
 
 Set any `namespace` restrictions you need in the `WATCH_NAMESPACE` environment value.
 
