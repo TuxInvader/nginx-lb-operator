@@ -3,8 +3,8 @@
       k8s_info:
         kind: Service
         api_version: v1
-        name: "{{ spec.ingress }}"
-        namespace: "{{ meta.namespace }}"
+        name: "{{ spec.ingressService }}"
+        namespace: "{{ spec.ingressNamespace | default( meta.namespace ) }}"
       register: service_info
 
     - name: Dump the Service Info
@@ -21,7 +21,7 @@
       k8s_info:
         kind: Pod
         api_version: v1
-        namespace: "{{ meta.namespace }}"
+        namespace: "{{ service_info.resources.0.metadata.namespace }}"
         label_selectors: "{{ pod_selectors }}"
       register: pod_info
 
