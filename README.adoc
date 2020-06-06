@@ -67,7 +67,11 @@ dependencies. The `Gateway` may require a `Certificate` if the service is using 
 other resources together to form the "Application Endpoint".
 
 The Kubernetes `Service` which makes up the workgroup (`pool` or `upstream` if you prefer) should be named in the
-`Component` resource under the `spec.ingress` setting.
+`Component` resource under the `spec.ingressName` setting. The `Service` can be in a different namespace to the CRs
+if the Operator is running with ClusterScope, if that is the case then set the `spec.ingressNamespace` to match. 
+
+The ClusterScope is useful if you want the NGINX instance to load balance onto a shared Router or Ingress Controller.
+See <<operator-scopes,Operator Scopes>> below.
 
 === Desired State
 
@@ -85,19 +89,17 @@ sent to the controller. With the following caveats:
 === Deployment Scaling
 
 If you want the Operator to update the workgroups in your `Component` when your `Deployment` is scaled, then you should add a label
-to the metadata called `nginx-lb-component` and set it to the name of the `Component` to be updated. Eg:
+to the `Component` metadata called `deployment` and set it to `deployment_Name` `dot` `deploymentNamespace`. Eg:
 
+[source,yaml]
 ----
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
 metadata:
-  name: whatcheese-www
-  namespace: ingress-dev
+  name: my-component
+  namespace: my-app
   labels:
-    app: whatcheese-www
-    nginx-lb-component: whatcheese-www
-    ...
-
+    deployment: nginx-unit.my-app
 ----
 
 === Usage with Ingress Controller
@@ -105,10 +107,11 @@ metadata:
 This operator can be used in conjunction with the https://docs.nginx.com/nginx-ingress-controller/[NGINX Ingress Controller]
 to provide external load balancing onto an NGINX Ingress layer running inside your container platform.
 This is recommended in large scale deployments because it keeps the bulk of the Application Deliver Controller (ADC)
-functionality within the container platform and namespace/project. 
+functionality within the container platform. 
 
 NGINX Ingress Controller provides several https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/[Custom Resources]
 which enable many more advanced features beyond those included with standard Ingress objects or OCP Routes.
+
 While it has become common for Load Balancers to extend Ingress using annotations, that method is error prone
 and fragments the Ingress spec. Using NGINX Custom Resources instead of Ingress has the following advantages:
 
@@ -124,8 +127,8 @@ for more information.
 
 === Usage without Ingress Controller
 
-The Service should point to an NGINX Plus Ingress Controller (to provide additional ADC features), but it could also point to the
-application directly.
+The Service can either point to an NGINX Plus Ingress Controller (to provide additional ADC features), or to any other service or
+route.
 
 == Setting Up and Building
 
@@ -161,16 +164,30 @@ You're ready to deploy the operator container, but you can also test it locally 
 See <<docs/runninglocally.adoc#,Running the Operator Locally>> if you want to test/debug.
 ****
 
+== Operator Scopes
+
+The Operator can be deployed with a `namespace` scope, in which case it only watches resources in a single
+namespace - the one in which it is deployed. All Custom Resources (CRs), Services, and Secrets must be
+deployed into that same namespace.
+
+Alternatively you may deploy the Operator with a `cluster` scope, in which case it can be configured to
+watch `ALL` or `multiple` namespaces.
+
 == Deploy the Operator
 
-The Operator is namespace-scoped, so each project needs to run it's own operator. 
+Chose one of the options below, Cluster or Namespace.
 
-We first need to setup the service account and role bindings for the Operator
+=== Deploy with Namespace Scope
+
+A namespace-scoped operator can only access resources in it's own namespace, so each project needs to
+run it's own operator. 
+
+Create the `role`, `service_account`, and `role_bindings` with the manifests
 
 ----
-kubectl create -f deploy/service_account.yaml
-kubectl create -f deploy/role.yaml
-kubectl create -f deploy/role_binding.yaml
+kubectl create -f deploy/namespace/service_account.yaml
+kubectl create -f deploy/namespace/role.yaml
+kubectl create -f deploy/namespace/role_binding.yaml
 ----
 
 Then replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
@@ -178,7 +195,48 @@ location and name of the image you built above, and deploy.
 
 ----
 export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
-sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/operator.yaml > deploy/operator-for-reals.yaml
+sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/namespace/operator.yaml > deploy/operator-for-reals.yaml
+kubectl create -f deploy/operator-for-reals.yaml
+----
+
+That should be it. Your operator is running.
+
+=== Deploy with Cluster Scope
+
+A cluster-scoped operator will watch all `namespaces` by default, if you only want to watch a subset, such as
+an ingress-namespace, and a few other projects, then modify the `WATCH_NAMESPACE` parameter in the deployment
+manifest to limit them.
+
+For example. Lets assume we have two projects under our control. Each project has it's own namespace, and they
+create Ingress resources consumed by a shared Ingress Controller running in a third namespace.
+We might set the `WATCH_NAMESPACE` as follows:
+
+----
+  env:
+    - name: WATCH_NAMESPACE
+      value: "nginx-ingress,project-101,project-102"
+----
+
+The above would allow the operator to create LB config for the two namespaces: `project101` and `project102`, the
+`Services` referenced by the project `Components` would be the NGINX KIC running in the `nginx-ingress` namespace.
+Also if the NGINX KIC deployment is scaled, then the components in the projects would be notified and reconfigured.
+
+To deploy a cluster-scoped operator, first create `ClusterRole`, `ClusterRoleBindings` and the `service_account`
+
+----
+kubectl create -f deploy/cluster/service_account.yaml
+kubectl create -f deploy/cluster/role.yaml
+kubectl create -f deploy/cluster/role_binding.yaml
+----
+
+Set any `namespace` restrictions you need in the `WATCH_NAMESPACE` environment value.
+
+Then replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
+location and name of the image you built above, and deploy. 
+
+----
+export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
+sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/cluster/operator.yaml > deploy/operator-for-reals.yaml
 kubectl create -f deploy/operator-for-reals.yaml
 ----
 
@@ -289,7 +347,8 @@ metadata:
 spec:
   controller: "dev-controller"
   application: "my-application"
-  ingress: "my-nginx-ingress-controller"
+  ingressName: "my-nginx-ingress-controller"
+  ingressNamespace: "my-nginx-ingress-namespace"
   gateway: "my-gateway"
   workload:
     scheme: "http"
