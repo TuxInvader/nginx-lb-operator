@@ -9,6 +9,7 @@
   vars:
     ansible_verbosity: "{{ lookup('env','ANSIBLE_VERBOSITY_DEPLOYMENT_APPS') }}"
     resource_type: "Deployment"
+    watch_namespace: "{{ lookup('env','WATCH_NAMESPACE')  }}"
 
   tasks:
 
@@ -35,10 +36,18 @@
       delay: 2
       ignore_errors: true
 
+    # Set the namespace for component lookup. Empty when namespace is empty or multiple and
+    # the current namespace when it consists of just one element.
+    - name: Set Lookup NameSpace
+      set_fact:
+        lookup_namespace: "{{ watch_namespace }}"
+      when: ( watch_namespace != "" ) and ((',' in watch_namespace) == False)
+
     - name: Get the Components
       k8s_info:
         kind: Component
         api_version: lb.nginx.com/v1alpha1
+        namespace: "{{ lookup_namespace | default('') }}"
         label_selectors:
           - "deployment = {{ meta.name ~ '.' ~ meta.namespace }}"
       register: components

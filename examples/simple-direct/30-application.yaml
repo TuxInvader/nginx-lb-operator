@@ -2,7 +2,7 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Application
 metadata:
   name: whatcheese
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   controller: "dev-controller"
   displayName: "Whatcheese App"

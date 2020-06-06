@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: whatcheese-db
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
   labels:
     app: whatcheese-db
 spec:
@@ -27,7 +27,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: whatcheese-db
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   selector:
     app: whatcheese-db

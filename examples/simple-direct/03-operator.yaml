@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-lb-operator
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   replicas: 1
   selector:

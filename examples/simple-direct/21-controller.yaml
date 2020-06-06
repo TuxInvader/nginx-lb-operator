@@ -3,7 +3,7 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Controller
 metadata:
   name: dev-controller
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   user_email: "dev1@nginx.com"
   secret: "controller"

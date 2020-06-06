@@ -2,12 +2,14 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Component
 metadata:
   name: whatcheese-api
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
+  labels:
+    deployment: whatcheese-web.simple-cheese-demo
 spec:
   # Add fields here
   controller: "dev-controller"
   application: "whatcheese"
-  ingress: "whatcheese-api"
+  ingressService: "whatcheese-api"
   gateway: "whatcheese-gw"
   workload:
     scheme: "http"

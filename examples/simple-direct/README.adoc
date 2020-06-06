@@ -4,7 +4,7 @@
 
 == Prerequisites
 
-The manifests in this demo will create a namespace called `simple-ingress-demo` on your Kubernetes cluster
+The manifests in this demo will create a namespace called `simple-cheese-demo` on your Kubernetes cluster
 and deploy containers from Docker Hub. The containers are:
 
 * tuxinvader/nginx-lb-operator:latest - A build of the nginx-lb-operator
@@ -56,7 +56,7 @@ You will need to modify manifest `20-controller-secret.yaml` and replace the `us
 a base64 encoded version of your password. Eg:
 
 ----
-echo YourControllerPassword | base64
+echo -n YourControllerPassword | base64
 ----
 
 Update the manifest with your password
@@ -69,7 +69,7 @@ kind: Secret
 type: Opaque
 metadata:
   name: controller
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 data:
   user_password: WW91ckNvbnRyb2xsZXJQYXNzd29yZAo=
 ----
@@ -85,7 +85,7 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Controller
 metadata:
   name: dev-controller
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   user_email: "dev1@nginx.com"
   secret: "controller"
@@ -113,7 +113,7 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Gateway
 metadata:
   name: whatcheese-gw
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   controller: "dev-controller"
   displayName: "Dev Gateway"

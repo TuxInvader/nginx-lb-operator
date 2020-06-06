@@ -3,10 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: whatcheese-web
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
   labels:
     app: whatcheese-web
-    nginx-lb-component: whatcheese-web
 spec:
   selector:
     matchLabels:
@@ -29,7 +28,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: whatcheese-web
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   selector:
     app: whatcheese-web

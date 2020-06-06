@@ -2,7 +2,7 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Gateway
 metadata:
   name: whatcheese-gw
-  namespace: simple-ingress-demo
+  namespace: simple-cheese-demo
 spec:
   controller: "dev-controller"
   displayName: "Dev Gateway"
