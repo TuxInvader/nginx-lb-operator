@@ -67,7 +67,7 @@ dependencies. The `Gateway` may require a `Certificate` if the service is using 
 other resources together to form the "Application Endpoint".
 
 The Kubernetes `Service` which makes up the workgroup (`pool` or `upstream` if you prefer) should be named in the
-`Component` resource under the `spec.ingressName` setting. The `Service` can be in a different namespace to the CRs
+`Component` resource under the `spec.ingressService` setting. The `Service` can be in a different namespace to the CRs
 if the Operator is running with ClusterScope, if that is the case then set the `spec.ingressNamespace` to match. 
 
 The ClusterScope is useful if you want the NGINX instance to load balance onto a shared Router or Ingress Controller.
@@ -353,7 +353,7 @@ metadata:
 spec:
   controller: "dev-controller"
   application: "my-application"
-  ingressName: "my-nginx-ingress-controller"
+  ingressService: "my-nginx-ingress-controller"
   ingressNamespace: "my-nginx-ingress-namespace"
   gateway: "my-gateway"
   workload:
