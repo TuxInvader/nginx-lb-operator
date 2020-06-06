@@ -33,7 +33,7 @@
         path: "{{ token_cache }}"
         state: present
         sleep: 1
-        timeout: 15
+        timeout: "{{ 30 | random }}"
       ignore_errors: yes
       when: resource_type != "Controller"
 
