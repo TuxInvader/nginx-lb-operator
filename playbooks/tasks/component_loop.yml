@@ -1,5 +1,8 @@
 ---
 
+  - name: Deploy Component
+    block:
+
     - name: Setup the Component environment
       set_fact:
         nginx_lb_namespace: "{{ item.metadata.namespace }}"
@@ -15,4 +18,6 @@
 
     - name: Setup the Component
       include_tasks: tasks/component.yml
+
+    when: item.metadata.namespace in watch_namespace
 
