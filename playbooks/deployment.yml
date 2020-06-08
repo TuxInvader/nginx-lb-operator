@@ -52,6 +52,18 @@
           - "deployment = {{ meta.name ~ '.' ~ meta.namespace }}"
       register: components
 
+    - name: Filter watched components
+      set_fact:
+        filtered_components: "{{ components | json_query( filter_components ) }}"
+      with_dict: "{{ components }}"
+      vars:
+        filter_components: "resources[? contains( '{{ watch_namespace }}', @.metadata.namespace) ]"
+      when: watch_namespace != ""
+
+    - name: Update the Components list
+      set_fact:
+        components: "{{ filtered_components | default( components.resources ) }}"
+
     - name: Dump the Components
       debug:
         msg: "{{ components }}"
@@ -59,6 +71,8 @@
 
     - name: Update all Components with labels linked to this deployment
       include_tasks: tasks/component_loop.yml
-      with_list: "{{ components.resources }}"
-      when: components.resources | length > 0
+      with_list: "{{ components }}"
+      loop_control:
+        loop_var: component_loop_item
+      when: components | length > 0
 

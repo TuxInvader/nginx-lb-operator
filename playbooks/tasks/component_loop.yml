@@ -1,23 +1,23 @@
 ---
 
-  - name: Deploy Component
-    block:
+  - name: debug - component_loop_item
+    debug:
+      msg: "{{ component_loop_item }}"
+    when: ansible_verbosity > 2
 
-    - name: Setup the Component environment
-      set_fact:
-        nginx_lb_namespace: "{{ item.metadata.namespace }}"
-        component_name: "{{ item.metadata.name }}"
-        spec: "{{ item.spec }}"
-        controller: "{{ item.spec.controller }}"
-        # Reset the pod_selectors and node_ips from previous loops
-        pod_selectors: []
-        node_ips: []
+  - name: Setup the Component environment
+    set_fact:
+      nginx_lb_namespace: "{{ component_loop_item.metadata.namespace }}"
+      component_name: "{{ component_loop_item.metadata.name }}"
+      spec: "{{ component_loop_item.spec }}"
+      controller: "{{ component_loop_item.spec.controller }}"
+      # Reset the pod_selectors and node_ips from previous loops
+      pod_selectors: []
+      node_ips: []
 
-    - name: Setup Connection to Controller
-      include_tasks: tasks/setup_env.yml
+  - name: Setup Connection to Controller
+    include_tasks: tasks/setup_env.yml
 
-    - name: Setup the Component
-      include_tasks: tasks/component.yml
-
-    when: item.metadata.namespace in watch_namespace
+  - name: Setup the Component
+    include_tasks: tasks/component.yml
 
