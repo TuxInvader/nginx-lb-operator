@@ -34,8 +34,13 @@ spec:
               type: string
             gateway:
               type: string
-            ingressService:
+            # Ingress Type should be Route, Service, Manual
+            ingressType:
               type: string
+            # The name of the Route or Service
+            ingressName:
+              type: string
+            # The namespace of the Service (optional)
             ingressNamespace:
               type: string
             workload:

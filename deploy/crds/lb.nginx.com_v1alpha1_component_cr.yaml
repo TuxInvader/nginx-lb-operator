@@ -6,8 +6,11 @@ spec:
   # Add fields here
   controller: "dev-controller"
   application: "my-application"
-  ingressService: "nginx-plus"
-  ingressNamespace: "nginx-ingress"
+  # IngressType should be Service or Route (default is Service)
+  ingressType: "Route"
+  #ingressName: "nginx-plus"
+  ingressName: "default"
+  ingressNamespace: "openshift-ingress"
   gateway: "my-gateway"
   workload:
     scheme: "http"
