@@ -417,6 +417,9 @@ The Component object also takes a `desiredState`, but the operator expects to co
 using the `gateway` provided, and the `backend->workloadGroups->group` using the pods or NodePorts found in the `ingress*`
 settings. The workload `uris` are built using `workload.scheme` and `workload.path`
 
+The `ingressType` can be `Service`, `Route`, or `None`. See the relevant sections below for deploying against a service, route
+or with a manually configured workload group (ie none).
+
 ==== Deploying Component with a Service
 
 When deployed with a service, you must set the `ingressType` to `Service`, and set the `ingressName` to match the service.
