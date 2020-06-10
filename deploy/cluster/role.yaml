@@ -73,6 +73,12 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - get
+- apiGroups:
   - lb.nginx.com
   resources:
   - '*'
