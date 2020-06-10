@@ -49,7 +49,7 @@
         api_version: lb.nginx.com/v1alpha1
         namespace: "{{ lookup_namespace | default('') }}"
         label_selectors:
-          - "deployment = {{ meta.name ~ '.' ~ meta.namespace }}"
+          - "deployment-hash = {{ ( meta.name ~ '.' ~ meta.namespace ) | hash('sha224') }}"
       register: components
 
     - name: Filter watched components
