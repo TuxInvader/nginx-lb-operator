@@ -467,6 +467,35 @@ spec:
 
 If you are using Codeready Containers The `workload.crcOverride` can be set to the IP of your CRC VM.
 
+==== Deploying Component with a manual workload
+
+You can also set the `ingressType` to `None` in which case the node list will not be generated and the 
+workload groups in the `desiredSpec` will need to be set manually. Eg:
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
+metadata:
+  name: my-component
+  namespace: my-app
+spec:
+  controller: dev-controller
+  application: my-application
+  ingressType: None
+  ...
+  desiredSpec:
+    backend:
+      workloadGroups:
+        group:
+          uris:
+            'https://node1.cluster:443/': {}
+            'https://node2.cluster:443/': {}
+          loadBalancingMethod:
+            type: ROUND_ROBIN
+ 
+----
+
 ==== General Example
 
 [source,yaml]

@@ -6,127 +6,19 @@
       set_fact:
         nginx_lb_namespace: "{{ nginx_lb_namespace | default( meta.namespace ) }}"
 
-    # Find the router pods when the ingressType is Route
-    - name: Process Route Information
-      block:
-
-      - name: Get the Ingress Route Details
-        k8s_info:
-          kind: Route
-          api_version: route.openshift.io/v1
-          name: "{{ spec.ingressName }}"
-          namespace: "{{ spec.ingressNamespace | default( nginx_lb_namespace ) }}"
-        register: route_info
-
-      - name: Dump the Route Info
-        debug:
-          msg: "{{ route_info }}"
-        when: ansible_verbosity > 2
-
-      - name: Fail when route doesn't exist
-        fail:
-          msg: "Route does not exists {{ spec.ingressName }}"
-        when: route_info.resources | length == 0
-
-      - name: Get the Router Details
-        k8s_info:
-          kind: Service
-          api_version: v1
-          label_selectors: "ingresscontroller.operator.openshift.io/owning-ingresscontroller={{ route_info.resources.0.status.ingress.0.routerName }}"
-          namespace: "{{ spec.ingressRouterNamespace | default( 'openshift-ingress' ) }}"
-        register: router_service_info
-
-      when: spec.ingressType | lower == "route"
-
-    # Get the Ingress Service when ingressType is Service
-    - name: Get the Ingress Service Details
-      k8s_info:
-        kind: Service
-        api_version: v1
-        name: "{{ spec.ingressName }}"
-        namespace: "{{ spec.ingressNamespace | default( nginx_lb_namespace ) }}"
-      register: service_info
-      when: spec.ingressType | lower == "service"
-
-    # Set Service info. Routes take precedence over Services
-    - name: set service_info fact
-      set_fact:
-        service_info:
-          resources: "{{ router_service_info.resources | default(service_info.resources) }}"
-
-    - name: Dump the Service Info
-      debug:
-        msg: "{{ service_info }}"
-      when: ansible_verbosity > 2
-
-    - name: Fail when we don't have a service
+    - name: Fail when ingressType is not set properly
       fail:
-        msg: "We failed to select the service or route for this component"
-      when: service_info.resources is undefined
+        msg: "You must set ingressType to one of 'Route|Service|None'"
+      when: ( spec.ingressType is undefined ) or (
+            ( spec.ingressType | lower != "route" ) and
+            ( spec.ingressType | lower != "service" ) and
+            ( spec.ingressType | lower != "none" ))
 
-    - name: process selectors
-      set_fact:
-        pod_selectors: "{{ pod_selectors | default([]) + [ item.key ~ ' = ' ~ item.value ] }}"
-      with_dict: "{{ service_info.resources.0.spec.selector }}"
-
-    - name: Get the Ingress Server Pods
-      k8s_info:
-        kind: Pod
-        api_version: v1
-        namespace: "{{ service_info.resources.0.metadata.namespace }}"
-        label_selectors: "{{ pod_selectors }}"
-      register: pod_info
-
-    - name: Dump the Pods result
-      debug:
-        msg: "{{ pod_info }}"
-      when: ansible_verbosity > 2
-
-    - name: Build workgroup for NodePort deployment
-      block:
-
-        - name: Get the NodePorts for the service
-          set_fact:
-            node_port: "{{ service_info.resources.0.spec | json_query( target_port_query ) }}" 
-          vars:
-            target_port_query: "ports[?targetPort==`{{ spec.workload.targetPort }}`].nodePort"
-
-        - name: Generate the workload list
-          set_fact:
-            node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
-          with_list: "{{ pod_info | json_query( pod_name_query ) }}"
-          vars:
-            pod_name_query: "resources[? ! contains(keys(metadata),'deletionTimestamp')].status.hostIP"
-          when: spec.workload.crcOverride is undefined
-
-        - name: Use CRC Override IP for workload list
-          set_fact:
-            node_ips: "{{ [ ( spec.workload.scheme | default('http') )  ~ '://' ~ spec.workload.crcOverride ~ ':' ~ node_port.0 ~ ( spec.workload.path | default() ) ] }}"
-          when: spec.workload.crcOverride is defined
-
-      when: service_info.resources.0.spec.type == "NodePort"
-
-    - name: Build workgroup for Direct2Pod deployment
-      block:
-
-        - name: Generate the workload list
-          set_fact:
-            node_ips: "{{ node_ips | default([]) + [ ( spec.workload.scheme | default('http') )  ~ '://' ~ item ~ ':' ~ spec.workload.targetPort ~ ( spec.workload.path | default() ) ] }}"
-          with_list: "{{ pod_info | json_query( pod_name_query ) }}"
-          vars:
-            pod_name_query: "resources[? ! contains(keys(metadata),'deletionTimestamp')].status.podIP"
-
-      when: service_info.resources.0.spec.type != "NodePort"
-
-    - name: Dump the Nodes list
-      debug:
-        msg: "{{ node_ips }}"
-      when: ansible_verbosity > 2
-
-    - name: Add workloads to desiredState
-      set_fact:
-        spec: "{{ spec | default({}) | combine( { 'desiredState':{ 'backend':{ 'workloadGroups':{ 'group':{ 'uris': { item: {}} }}}}}, recursive=True) }}"
-      with_list: "{{ node_ips }}"
+    # Build the node list when the ingressType is route or service
+    - name: Get the Nodes
+      include_tasks: component_nodes.yml
+      when: ( spec.ingressType | lower == "route" ) or
+            ( spec.ingressType | lower == "service" )
 
     - name: set the gatewayRefs
       set_fact:
