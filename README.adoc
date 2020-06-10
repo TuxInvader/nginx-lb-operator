@@ -89,7 +89,14 @@ sent to the controller. With the following caveats:
 === Deployment Scaling
 
 If you want the Operator to update the workgroups in your `Component` when your `Deployment` is scaled, then you should add a label
-to the `Component` metadata called `deployment` and set it to `deployment_Name` `dot` `deploymentNamespace`. Eg:
+to the `Component` metadata called `deployment-hash` and set it to a SHA224 hash of `deployment_Name` `dot` `deploymentNamespace`. Eg:
+
+----
+$ echo -n "router-default.openshift-ingress" | sha224sum
+dbb9f04a45371603a573de5160fa7fd32fa765194be63a7f70b066db  -
+----
+
+and include that hash in your component resource.
 
 [source,yaml]
 ----
@@ -99,7 +106,7 @@ metadata:
   name: my-component
   namespace: my-app
   labels:
-    deployment: nginx-unit.my-app
+    deployment-hash: dbb9f04a45371603a573de5160fa7fd32fa765194be63a7f70b066db
 ----
 
 === Usage with Ingress Controller
