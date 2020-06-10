@@ -31,7 +31,7 @@
         namespace: "{{ meta.namespace }}"
       register: deployment_status
       until: (deployment_status.resources is defined) and
-             (deployment_status.resources.0.spec.replicas  == deployment_status.resources.0.status.availableReplicas )
+             (deployment_status.resources.0.spec.replicas  == (deployment_status.resources.0.status.availableReplicas | default(0)) )
       retries: 10
       delay: 2
       ignore_errors: true
