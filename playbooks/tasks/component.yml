@@ -25,7 +25,7 @@
 
       - name: Fail when route doesn't exist
         fail:
-          msg: "Route does not exists {{ spec.ingressRoute }}"
+          msg: "Route does not exists {{ spec.ingressName }}"
         when: route_info.resources | length == 0
 
       - name: Get the Router Details
@@ -33,12 +33,12 @@
           kind: Service
           api_version: v1
           label_selectors: "ingresscontroller.operator.openshift.io/owning-ingresscontroller={{ route_info.resources.0.status.ingress.0.routerName }}"
-        register: service_info
+          namespace: "{{ spec.ingressRouterNamespace | default( 'openshift-ingress' ) }}"
+        register: router_service_info
 
       when: spec.ingressType | lower == "route"
 
-    # Get the ingressService, this will probably fail when the component is using routes
-    # so ignore the error, and let the route take precedence below.
+    # Get the Ingress Service when ingressType is Service
     - name: Get the Ingress Service Details
       k8s_info:
         kind: Service
@@ -46,12 +46,13 @@
         name: "{{ spec.ingressName }}"
         namespace: "{{ spec.ingressNamespace | default( nginx_lb_namespace ) }}"
       register: service_info
-      ignore_errors: yes
+      when: spec.ingressType | lower == "service"
 
-    # Set Service info. Routes take precedence over services
+    # Set Service info. Routes take precedence over Services
     - name: set service_info fact
       set_fact:
-        service_info: "{{ route_service_info | default(service_info) }}"
+        service_info:
+          resources: "{{ router_service_info.resources | default(service_info.resources) }}"
 
     - name: Dump the Service Info
       debug:
@@ -61,7 +62,7 @@
     - name: Fail when we don't have a service
       fail:
         msg: "We failed to select the service or route for this component"
-      when: service_info.resources | length == 0
+      when: service_info.resources is undefined
 
     - name: process selectors
       set_fact:
