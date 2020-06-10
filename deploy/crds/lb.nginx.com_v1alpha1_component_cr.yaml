@@ -2,15 +2,16 @@ apiVersion: lb.nginx.com/v1alpha1
 kind: Component
 metadata:
   name: my-component
+  namespace: my-namespace
 spec:
   # Add fields here
   controller: "dev-controller"
   application: "my-application"
   # IngressType should be Service or Route (default is Service)
   ingressType: "Route"
-  #ingressName: "nginx-plus"
-  ingressName: "default"
-  ingressNamespace: "openshift-ingress"
+  ingressName: "my-route"
+  ingressNamespace: "my-namespace"
+  ingressRouterNamespace: "openshift-ingress"
   gateway: "my-gateway"
   workload:
     scheme: "http"

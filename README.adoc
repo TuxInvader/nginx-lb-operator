@@ -132,10 +132,13 @@ and fragments the Ingress spec. Using NGINX Custom Resources instead of Ingress 
 See the https://docs.nginx.com/nginx-ingress-controller/configuration/virtualserver-and-virtualserverroute-resources[Documentation]
 for more information.
 
+When you deploy this operator with NGINX KIC, you will need to map the `Component` to the KIC using a `Service` or `Route`.
+See the <<component-crd,Component CR Example>> below.
+
 === Usage without Ingress Controller
 
 The Service can either point to an NGINX Plus Ingress Controller (to provide additional ADC features), or to any other service or
-route.
+route. See the <<component-crd,Component CR Example>> below.
 
 == Setting Up and Building
 
@@ -333,23 +336,138 @@ spec:
     ingress:
       placement:
         instancerefs:
-          - ref: /infrastructure/locations/unspecified/instances/6
+          - ref: /infrastructure/locations/unspecified/instances/nginx1
       uris:
         'http://www.uk.nginx.lab': {}
         'http://www.foo.com': {}
 ----
 
+=== Certificate CRD
+
+The certificate Resource can be specified either by providing the details in the object directly
+within the `desiredState` or by referencing a Kubernetes Secret in `secret`.
+
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Certificate
+metadata:
+  name: my-certificate
+spec:
+  controller: "dev-controller"
+  displayName: "My Kubernetes Certificate"
+  description: "A certificated deployed in Kubernetes"
+  #secret: secret-containing-the-cert
+  desiredState:
+    type: PEM
+    caCerts: []
+    privateKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQYBXFTj1ZdJGH
+      7IfomkeJfedaIueD01L6X6jj8TvS2xwTRHL4LIkZP882qHs2VfEpgbVi6a96lvWP
+      TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED
+      6bug7eceyafsFTTEghcNloHWnYBARA3878X5RQkLVUNocrZLkBG2Dn2d3aiEpWww
+      CZ+gbhraYKAflzD6wTJL29D5dLGF5k/88RTN60Gzoaxq7CkvlLwXCZjQSvjEGq5i
+      whJYgXwWvqy5VXxLc5amLXk=
+      -----END PRIVATE KEY-----
+    publicCert: |-
+      -----BEGIN CERTIFICATE-----
+      MIIDpzCCAo+gAwIBAgIUb+NqxHIP0Z15aqy5FY8+bb1vq6IwDQYJKoZIhvcNAQEL
+      1Xnimah+mQMOuWiJU9W9omet5Y9OemQLHmeSVFbfQXBkTNKGO+2iKtWJNO8+zzT7
+      TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED
+      5WZTPiggaDbDAwjK2QP2N933lHxR5JDmkHHH6GHKLWXgYgxY0zx8R2+eFyvxJvGB
+      yaw7SnX8i5mjkgwwGhgTMBnSdf3F9eLcMHPgceMOuTyynpe9SSE9Bck3LykgvQDW
+      InWB8mhlndb/p8ZYVLx9y2LDq1h3iymbnoHM
+      -----END CERTIFICATE-----
+----
+
+When referencing the cert as a kubernetes secret, then it should be an Opaque or tls type and
+the certificate details should be stored in `tls.key` and `tls.crt`. 
+
+----
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-cert
+data:
+  tls.crt: >-
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwekNDQW8rZ0F3SUJBZ0lVYitOcXhISVAw
+  tls.key: >-
+    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZB
+  type: UEVN
+type: Opaque
+----
+
+and the Certificate would look like this
+
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Certificate
+metadata:
+  name: my-certificate
+spec:
+  controller: "dev-controller"
+  displayName: "My Kubernetes Certificate"
+  description: "A certificated deployed in Kubernetes"
+  secret: my-cert
+----
+
 === Component CRD
 
 The Component object also takes a `desiredState`, but the operator expects to configure both the `ingress->gatewayRefs` 
-using the `gateway` provided, and the `backend->workloadGroups->group` using the pods or NodePorts found in the `ingress`
-setting. The workload `uris` are built using `workload.scheme` and `workload.path`
+using the `gateway` provided, and the `backend->workloadGroups->group` using the pods or NodePorts found in the `ingress*`
+settings. The workload `uris` are built using `workload.scheme` and `workload.path`
+
+==== Deploying Component with a Service
+
+When deployed with a service, you must set the `ingressType` to `Service`, and set the `ingressName` to match the service.
+If the service is in a different namespace, then you can set the `ingressNamespace` to match. The Operator must be runing with
+a `ClusterRole` if the service is in a different namespace. Eg:
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
+metadata:
+  name: my-component
+  namespace: my-app
+spec:
+  controller: dev-controller
+  application: my-application
+  ingressType: Service
+  ingressName: my-nginx-ingress-controller
+  ingressNamespace: nginx-igress
+----
 
 If the Ingress service is discovered to be using `NodePort`, then the workload groups will be set to the k8s nodes with
 the dynamically assigned port. Otherwise the workloads will be set to the pod IP and the `workload.targetPort`
 
-If you are using Codeready Containers The `workload.crcOverride` can be set to the IP of your CRC VM. You must set
-Ingress services to use the `NodePort` type in this case.
+==== Deploying Component with an OpenShift Route
+
+When deploying with an OpenShift Route, you must set the `ingressType` to `Route` and the `ingressName` to the
+name of the `Route` resource, again you can set `ingressNamespace` if the route is not in the same namespace.
+
+The Operator will look the router for the provided `Route` and attempt to locate its pods. So the Operator will need
+read access to the namespace in which the Router is running. This can be set with `ingressRouterNamespace` but will
+default to `openshift-ingress`. It is likely that the Operator will need a `ClusterRole` account. Eg:
+
+[source,yaml]
+----
+apiVersion: lb.nginx.com/v1alpha1
+kind: Component
+metadata:
+  name: my-component
+  namespace: my-app
+spec:
+  controller: dev-controller
+  application: my-application
+  ingressType: Route
+  ingressName: my-route
+  ingressRouterNamespace: openshift-ingress
+----
+
+If you are using Codeready Containers The `workload.crcOverride` can be set to the IP of your CRC VM.
+
+==== General Example
 
 [source,yaml]
 ----
@@ -360,7 +478,8 @@ metadata:
 spec:
   controller: "dev-controller"
   application: "my-application"
-  ingressService: "my-nginx-ingress-controller"
+  ingressType: Service
+  ingressName: "my-nginx-ingress-controller"
   ingressNamespace: "my-nginx-ingress-namespace"
   gateway: "my-gateway"
   workload:
@@ -431,74 +550,5 @@ The above would result in a `desiredState` similar to:
       }
     }
   }
-----
-
-=== Certificate CRD
-
-The certificate Resource can be specified either by providing the details in the object directly
-within the `desiredState` or by referencing a Kubernetes Secret in `secret`.
-
-----
-apiVersion: lb.nginx.com/v1alpha1
-kind: Certificate
-metadata:
-  name: my-certificate
-spec:
-  controller: "dev-controller"
-  displayName: "My Kubernetes Certificate"
-  description: "A certificated deployed in Kubernetes"
-  #secret: secret-containing-the-cert
-  desiredState:
-    type: PEM
-    caCerts: []
-    privateKey: |-
-      -----BEGIN PRIVATE KEY-----
-      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQYBXFTj1ZdJGH
-      7IfomkeJfedaIueD01L6X6jj8TvS2xwTRHL4LIkZP882qHs2VfEpgbVi6a96lvWP
-      TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED
-      6bug7eceyafsFTTEghcNloHWnYBARA3878X5RQkLVUNocrZLkBG2Dn2d3aiEpWww
-      CZ+gbhraYKAflzD6wTJL29D5dLGF5k/88RTN60Gzoaxq7CkvlLwXCZjQSvjEGq5i
-      whJYgXwWvqy5VXxLc5amLXk=
-      -----END PRIVATE KEY-----
-    publicCert: |-
-      -----BEGIN CERTIFICATE-----
-      MIIDpzCCAo+gAwIBAgIUb+NqxHIP0Z15aqy5FY8+bb1vq6IwDQYJKoZIhvcNAQEL
-      1Xnimah+mQMOuWiJU9W9omet5Y9OemQLHmeSVFbfQXBkTNKGO+2iKtWJNO8+zzT7
-      TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED  TRUNCATED
-      5WZTPiggaDbDAwjK2QP2N933lHxR5JDmkHHH6GHKLWXgYgxY0zx8R2+eFyvxJvGB
-      yaw7SnX8i5mjkgwwGhgTMBnSdf3F9eLcMHPgceMOuTyynpe9SSE9Bck3LykgvQDW
-      InWB8mhlndb/p8ZYVLx9y2LDq1h3iymbnoHM
-      -----END CERTIFICATE-----
-----
-
-When referencing the cert as a kubernetes secret, then it should be an Opaque or tls type and
-the certificate details should be stored in `tls.key` and `tls.crt`. 
-
-----
-kind: Secret
-apiVersion: v1
-metadata:
-  name: my-cert
-data:
-  tls.crt: >-
-    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwekNDQW8rZ0F3SUJBZ0lVYitOcXhISVAw
-  tls.key: >-
-    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZB
-  type: UEVN
-type: Opaque
-----
-
-and the Certificate would look like this
-
-----
-apiVersion: lb.nginx.com/v1alpha1
-kind: Certificate
-metadata:
-  name: my-certificate
-spec:
-  controller: "dev-controller"
-  displayName: "My Kubernetes Certificate"
-  description: "A certificated deployed in Kubernetes"
-  secret: my-cert
 ----
 
