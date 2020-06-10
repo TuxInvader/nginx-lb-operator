@@ -4,12 +4,14 @@ metadata:
   name: whatcheese-web
   namespace: simple-cheese-demo
   labels:
-    deployment: whatcheese-web.simple-cheese-demo
+    # echo -n whatcheese-web.simple-cheese-demo | sha224sum
+    deployment-hash: 95cf698e1f1f8c7a491c4a04787a0128948a19c5683d71deeec4006a
 spec:
   # Add fields here
   controller: "dev-controller"
   application: "whatcheese"
-  ingressService: "whatcheese-web"
+  ingressType: "Service"
+  ingressName: "whatcheese-web"
   gateway: "whatcheese-gw"
   workload:
     scheme: "http"
