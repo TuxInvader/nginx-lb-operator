@@ -1,4 +1,4 @@
-= NGINX Controller Operator
+= NGINX Load Balancer Operator
 :showtitle:
 :toc: left
 
@@ -7,8 +7,7 @@
 This repository contains a https://kubernetes.io/docs/concepts/extend-kubernetes/operator/[Kubernetes Operator]
 for use with https://kubernetes.io/[Kubernetes] or https://www.openshift.com/[RedHat OpenShift Container Platform (OCP)].
 The operator is built using the https://sdk.operatorframework.io/docs/install-operator-sdk/[Operator-SDK]
-from RedHat, and can manage http://nginx.org/[NGINX] or https://www.nginx.com/[NGINX Plus] Load Balancers running
-outside the container platform.
+from RedHat, and can manage https://www.nginx.com/[NGINX Plus] Load Balancers running outside the container platform.
 
 The Operator is designed to work with https://www.nginx.com/products/nginx-controller/[NGINX Controller] to
 provide an Application Centric deployment model. The NGINX Controller provides a declarative API which is RBAC
