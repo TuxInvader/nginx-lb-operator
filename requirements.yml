@@ -4,4 +4,4 @@ collections:
     version: "<1.0.0"
   - name: operator_sdk.util
   - name: nginxinc.nginx_controller
-    version: "3.3.3"
+    version: "3.7.5"
