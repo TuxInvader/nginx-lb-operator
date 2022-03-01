@@ -33,7 +33,7 @@
 
       - name: Build Controller URL
         set_fact:
-          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ meta.namespace ~ '.' ~ spec.application }}/components/{{ meta.name }}"
+          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/apps/{{ ansible_operator_meta.namespace ~ '.' ~ spec.application }}/components/{{ ansible_operator_meta.name }}"
 
       - name: Perform deletion tasks
         import_tasks: tasks/delete.yml

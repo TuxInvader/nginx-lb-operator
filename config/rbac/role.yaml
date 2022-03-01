@@ -1,0 +1,188 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+  ##
+  ## Base operator rules
+  ##
+  - apiGroups:
+      - ""
+    resources:
+    - pods
+    - services
+    - services/finalizers
+    - endpoints
+    - persistentvolumeclaims
+    - events
+    - configmaps
+    - secrets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for monitoring.coreos.com
+  ##
+  - apiGroups:
+    - monitoring.coreos.com
+    resources:
+    - servicemonitors
+    verbs:
+    - get
+    - create
+  ##
+  ## Rules for finalizers deployment
+  ##
+  - apiGroups:
+    - apps
+    resourceNames:
+    - nginx-lb-operator
+    resources:
+    - deployments/finalizers
+    verbs:
+    - update
+  # ##
+  # ## Rules for lb.nginx.com/v1alpha1, Kind: Controller
+  # ##
+  # - apiGroups:
+  #     - lb.nginx.com
+  #   resources:
+  #     - controllers
+  #     - controllers/status
+  #     - controllers/finalizers
+  #   verbs:
+  #     - create
+  #     - delete
+  #     - get
+  #     - list
+  #     - patch
+  #     - update
+  #     - watch
+  # ##
+  # ## Rules for lb.nginx.com/v1alpha1, Kind: Application
+  # ##
+  # - apiGroups:
+  #     - lb.nginx.com
+  #   resources:
+  #     - applications
+  #     - applications/status
+  #     - applications/finalizers
+  #   verbs:
+  #     - create
+  #     - delete
+  #     - get
+  #     - list
+  #     - patch
+  #     - update
+  #     - watch
+  # ##
+  # ## Rules for lb.nginx.com/v1alpha1, Kind: Component
+  # ##
+  # - apiGroups:
+  #     - lb.nginx.com
+  #   resources:
+  #     - components
+  #     - components/status
+  #     - components/finalizers
+  #   verbs:
+  #     - create
+  #     - delete
+  #     - get
+  #     - list
+  #     - patch
+  #     - update
+  #     - watch
+  # ##
+  # ## Rules for lb.nginx.com/v1alpha1, Kind: Gateway
+  # ##
+  # - apiGroups:
+  #     - lb.nginx.com
+  #   resources:
+  #     - gateways
+  #     - gateways/status
+  #     - gateways/finalizers
+  #   verbs:
+  #     - create
+  #     - delete
+  #     - get
+  #     - list
+  #     - patch
+  #     - update
+  #     - watch
+  # ##
+  # ## Rules for lb.nginx.com/v1alpha1, Kind: Certificate
+  # ##
+  # - apiGroups:
+    #   - lb.nginx.com
+    # resources:
+    #   - certificates
+    #   - certificates/status
+    #   - certificates/finalizers
+    # verbs:
+    #   - create
+    #   - delete
+    #   - get
+    #   - list
+    #   - patch
+    #   - update
+    #   - watch
+  ##
+  ## Rules app section @TODO to check
+  ##
+  - apiGroups:
+    - apps
+    resources:
+    - replicasets
+    - deployments
+    verbs:
+    - get
+  - apiGroups:
+    - apps
+    resources:
+    - deployments/status
+    verbs:
+    - update
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes
+    verbs:
+    - get
+  ##
+  ## Rules lb.nginx.com section @TODO to check
+  ##
+  - apiGroups:
+    - lb.nginx.com
+    resources:
+    - '*'
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+
+#+kubebuilder:scaffold:rules

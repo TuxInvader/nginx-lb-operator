@@ -81,7 +81,7 @@ sent to the controller. With the following caveats:
 
 * Gateway: The desiredState is used as is to create a new gateway object. The gateway will be called `namespace.name` in controller
 * Certificate: The `desiredState` can be taken from the resource directly or merged with data from a kubernetes `Secret`. Any fields
-  set in the optional `Secret` will take precedence over those given in `desiredState`.
+  set in the optional `Secret` will take precedence over those given in `desiredState`. The field secretCA contains the secret name for the CA certificates (an any intermediate CA as well). 
 * Component: The `desiredState` can enable any controller functionality, but the ingress gateway will be overwritten by a link to the
   `Gateway` set on the resource, and the backend workload group URIs list will be populated from the `Service` named in `spec.ingress`
 
@@ -153,19 +153,15 @@ then follow <<docs/codereadynotes.adoc#,these notes>> instead.
 build and push the operator to your repository
 
 ----
-export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
-operator-sdk build $IMAGE
-docker push $IMAGE
+export 
+make docker-build IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
+make docker-push IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
 ----
 
-=== Install the CRDs
+=== Install the operator in the nginx-lb namespace
 
 ----
-kubectl create -f deploy/crds/lb.nginx.com_controllers_crd.yaml
-kubectl create -f deploy/crds/lb.nginx.com_applications_crd.yaml
-kubectl create -f deploy/crds/lb.nginx.com_certificates_crd.yaml
-kubectl create -f deploy/crds/lb.nginx.com_components_crd.yaml
-kubectl create -f deploy/crds/lb.nginx.com_gateways_crd.yaml
+make deploy
 ----
 
 ****
@@ -173,48 +169,9 @@ You're ready to deploy the operator container, but you can also test it locally 
 See <<docs/runninglocally.adoc#,Running the Operator Locally>> if you want to test/debug.
 ****
 
-== Operator Scopes
-
-The Operator can be deployed with a `namespace` scope, in which case it only watches resources in a single
-namespace - the one in which it is deployed. All Custom Resources (CRs), Services, and Secrets must be
-deployed into that same namespace.
-
-Alternatively you may deploy the Operator with a `cluster` scope, in which case it can be configured to
-watch `ALL` or `multiple` namespaces.
-
 == Deploy the Operator
 
-Chose one of the options below, Cluster or Namespace.
-
-=== Deploy with Namespace Scope
-
-A namespace-scoped operator can only access resources in it's own namespace, so each project needs to
-run it's own operator. 
-
-Create the `role`, `service_account`, and `role_bindings` with the manifests:
-
-----
-kubectl create -f deploy/namespace/service_account.yaml
-kubectl create -f deploy/namespace/role.yaml
-kubectl create -f deploy/namespace/role_binding.yaml
-----
-
-Next we deploy the operator....
-
-Replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
-location and name of the image you built above, and deploy.
-
-----
-export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
-sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/namespace/operator.yaml > deploy/operator-for-reals.yaml
-kubectl create -f deploy/operator-for-reals.yaml
-----
-
-That should be it. Your operator is running.
-
-=== Deploy with Cluster Scope
-
-A cluster-scoped operator will watch all `namespaces` by default, if you only want to watch a subset, such as
+The  operator will watch all `namespaces` by default, if you only want to watch a subset, such as
 an ingress-namespace, and a few other projects, then modify the `WATCH_NAMESPACE` parameter in the deployment
 manifest to limit them.
 
@@ -228,34 +185,17 @@ We might set the `WATCH_NAMESPACE` as follows:
       value: "nginx-ingress,project-101,project-102"
 ----
 
-The above would allow the operator to create LB config for the two namespaces: `project101` and `project102`, the
-`Services` referenced by the project `Components` would be the NGINX KIC running in the `nginx-ingress` namespace.
-Also if the NGINX KIC deployment is scaled, then the components in the projects would be notified and reconfigured.
+Replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
+location and name of the image you built above, and deploy.
 
-To deploy a cluster-scoped operator, first create `ClusterRole`, `ClusterRoleBindings` and the `service_account`.
-You will need to modify the `service_account` and the `role_binding` namespaces to match the namespace in which
-the operator will run. Make your modifications and the apply them:
+=== Install the operator in the nginx-lb namespace
 
 ----
-kubectl create -f deploy/cluster/service_account.yaml
-kubectl create -f deploy/cluster/role.yaml
-kubectl create -f deploy/cluster/role_binding.yaml
-----
-
-Next we deploy the operator....
-
-Set any `namespace` restrictions you need in the `WATCH_NAMESPACE` environment value.
-
-Then replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
-location and name of the image you built above, and deploy. 
-
-----
-export IMAGE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
-sed -e "s|REPLACE_IMAGE|${IMAGE}|g" deploy/cluster/operator.yaml > deploy/operator-for-reals.yaml
-kubectl create -f deploy/operator-for-reals.yaml
+make deploy
 ----
 
 That should be it. Your operator is running.
+
 
 == The Operator Custom Resources
 
@@ -355,7 +295,8 @@ spec:
   controller: "dev-controller"
   displayName: "My Kubernetes Certificate"
   description: "A certificated deployed in Kubernetes"
-  #secret: secret-containing-the-cert
+  # secret: secret-containing-the-cert
+  # secretCA: secret-containing-ca-secret
   desiredState:
     type: PEM
     caCerts: []
@@ -382,6 +323,10 @@ spec:
 When referencing the cert as a kubernetes secret, then it should be an Opaque or tls type and
 the certificate details should be stored in `tls.key` and `tls.crt`. 
 
+When referencing the CA cert as a kubernetes secret, then it should be an Opaque  type and
+the certificate details should be stored in `ca.crt`. Multiple certificates ca be stored as part of the CA certificate and intermediate CA certificates. 
+When creating from literal, create a pem file with the ca.crt field storing all the certificates in PEM format. 
+
 ----
 kind: Secret
 apiVersion: v1
@@ -392,6 +337,16 @@ data:
     LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwekNDQW8rZ0F3SUJBZ0lVYitOcXhISVAw
   tls.key: >-
     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZB
+  type: UEVN
+type: Opaque
+----
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-ca-cert-secret
+data:
+  ca.crt: >-
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwekNDQW8rZ0F3SUJBZ0lVYitOcXhISVAw
   type: UEVN
 type: Opaque
 ----
@@ -408,6 +363,7 @@ spec:
   displayName: "My Kubernetes Certificate"
   description: "A certificated deployed in Kubernetes"
   secret: my-cert
+  caSecret: my-ca-cert-secret
 ----
 
 === Component CRD
@@ -465,6 +421,7 @@ spec:
   ingressType: Route
   ingressName: my-route
   ingressRouterNamespace: openshift-ingress
+  groupName: "my-group-name"
 ----
 
 If you are using Codeready Containers The `workload.crcOverride` can be set to the IP of your CRC VM.
@@ -519,6 +476,7 @@ spec:
     targetPort: 443
     crcOverride: 192.168.130.11
   displayName: "My Component"
+  groupName: "my-workgroup-name"
   description: "A component deployed by Kubernetes"
   desiredState:
     backend:
@@ -558,7 +516,7 @@ The above would result in a `desiredState` similar to:
     },
     "backend": {
       "workloadGroups": {
-        "group": {
+        "my-workgroup-name": {
           "loadBalancingMethod": {
             "type": "ROUND_ROBIN"
           },

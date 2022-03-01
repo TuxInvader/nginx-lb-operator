@@ -26,7 +26,7 @@
 
       - name: Set the controller Auth cache file
         set_fact:
-          token_cache: "{{ '/tmp/ctl-' ~ meta.namespace ~ '/' ~ meta.namespace ~ '.' ~ meta.name ~ '_' ~ spec.secret ~ '.auth' }}"
+          token_cache: "{{ '/tmp/ctl-' ~ ansible_operator_meta.namespace ~ '/' ~ ansible_operator_meta.namespace ~ '.' ~ ansible_operator_meta.name ~ '_' ~ spec.secret ~ '.auth' }}"
 
       - name: Remove cached credentials
         file:

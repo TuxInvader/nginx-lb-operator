@@ -7,8 +7,16 @@
         k8s_info:
           kind: Secret
           name: "{{ spec.secret }}"
-          namespace: "{{ meta.namespace }}"
+          namespace: "{{ ansible_operator_meta.namespace }}"
         register: cert
+
+      - name: Load the secret of the CA certificate
+        k8s_info:
+          kind: Secret
+          name: "{{ spec.secretCA }}"
+          namespace: "{{ ansible_operator_meta.namespace }}"
+        register: cert_ca
+        when: spec.secretCA is defined
 
       - name: Override any desiredState with data from the secret
         block:
@@ -33,10 +41,40 @@
             desiredState: "{{ desiredState | default({}) | combine( {'privateKey': cert.resources.0.data['tls.key'] | b64decode }) }}"
           when: cert.resources.0.data['tls.key'] | default('') | length > 0
 
-        - name: Override CA Cert from secret
+        # - name: Override CA Cert from secret
+        #   set_fact:
+        #     desiredState: "{{ desiredState | default({}) | combine( {'caCerts': [ cert.resources.0.data['ca.crt'] | b64decode ] }) }}"
+        #   when: cert.resources.0.data['ca.crt'] | default('') | length > 0
+
+        - name: Decoding and storing ca_cert in variable
+          set_fact: 
+            cert_ca_string: "{{ cert_ca.resources.0.data['ca.crt'] | b64decode }}"
+          when: cert_ca.resources.0.data['ca.crt'] | default('') | length > 0
+
+        #- name: Override CA Cert from secret
+        #  set_fact:
+        #    desiredState: "{{ desiredState | default({}) | combine( {'caCerts': cert_ca_string.split(',') }) }}"
+        #  when: cert_ca.resources.0.data['ca.crt'] | default('') | length > 0
+
+        - name: Search with regex the certificate variable and convert to list
           set_fact:
-            desiredState: "{{ desiredState | default({}) | combine( {'caCerts': [ cert.resources.0.data['ca.crt'] | b64decode ] }) }}"
-          when: cert.resources.0.data['ca.crt'] | default('') | length > 0
+            list_certs: "{{ cert_ca_string | regex_findall('(-----BEGIN CERTIFICATE-----(?:\n|\r|\r\n)(?:[0-9a-zA-Z\\+\\/=]{64}(?:\n|\r|\r\n))*(?:[0-9a-zA-Z\\+\\/=]{1,63}(?:\n|\r|\r\n))?-----END CERTIFICATE-----)|(-----BEGIN CERTIFICATE-----(?:\n|\r|\r\n)(?:[0-9a-zA-Z\\+\\/=]{64}(?:\n|\r|\r\n))*(?:[0-9a-zA-Z\\+\\/=]{1,63}(?:\n|\r|\r\n))?-----END CERTIFICATE-----)') }}"
+          when: cert_ca.resources.0.data['ca.crt'] | default('') | length > 0
+
+        - name: Override any desiredState with data from the secret
+          block:
+
+          - name: Building certificate list from subelements of search result list
+            set_fact:
+              certs_result: "{{ certs_result | default([]) + [item] }}"
+            when: item | length > 0 and list_certs is defined
+            with_items: "{{ list_certs }}"
+          when: cert_ca.resources.0.data['ca.crt'] | default('') | length > 0
+
+        - name: Override CA Cert from CA certificate list
+          set_fact:
+            desiredState: "{{ desiredState | default({}) | combine( {'caCerts': certs_result }) }}"
+          when: cert_ca.resources.0.data['ca.crt'] | default('') | length > 0
 
         when: cert.resources.0 is defined and cert.resources.0.data is defined
 

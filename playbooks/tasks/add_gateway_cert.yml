@@ -8,7 +8,7 @@
           kind: Certificate
           api_version: lb.nginx.com/v1alpha1
           name: "{{ spec.certificate }}"
-          namespace: "{{ meta.namespace }}"
+          namespace: "{{ ansible_operator_meta.namespace }}"
         register: cert
 
       - name: Generate a CertRef from Certificate

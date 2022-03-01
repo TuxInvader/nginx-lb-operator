@@ -37,8 +37,8 @@
         vars:
           nginx_controller_certificate:
             metadata:
-              name: "{{ meta.namespace ~ '.' ~ meta.name }}"
-              displayName: "{{ spec.displayName | default( meta.namespace ~ '.' ~ meta.name) }}"
+              name: "{{ ansible_operator_meta.namespace ~ '.' ~ ansible_operator_meta.name }}"
+              displayName: "{{ spec.displayName | default( ansible_operator_meta.namespace ~ '.' ~ ansible_operator_meta.name) }}"
               description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
             desiredState: "{{ spec.desiredState | default({}) }}"
 
@@ -49,7 +49,7 @@
 
       - name: Build Controller URL
         set_fact:
-          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/certs/{{ meta.namespace ~ '.' ~ meta.name }}"
+          delete_url: "https://{{ nginx_controller_fqdn }}/api/v1/services/environments/{{ nginx_controller_environmentName }}/certs/{{ ansible_operator_meta.namespace ~ '.' ~ ansible_operator_meta.name }}"
 
       - name: Perform deletion tasks
         import_tasks: tasks/delete.yml

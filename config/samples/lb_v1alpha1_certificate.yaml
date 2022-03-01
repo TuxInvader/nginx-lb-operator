@@ -1,0 +1,67 @@
+apiVersion: lb.nginx.com/v1alpha1
+kind: Certificate
+metadata:
+  name: my-certificate
+spec:
+  # Add fields here
+  controller: "dev-controller"
+  displayName: "My Kubernetes Certificate"
+  description: "A certificated deployed in Kubernetes"
+  #secret: secret-containing-the-cert
+  # secretCA: secret-containing-ca-secret
+  desiredState:
+    type: PEM
+    caCerts: []
+    privateKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQYBXFTj1ZdJGH
+      7IfomkeJfedaIueD01L6X6jj8TvS2xwTRHL4LIkZP882qHs2VfEpgbVi6a96lvWP
+      oyzlf2E/UJCNePicwDZexmc0JsJyE5cSXg+E8tghfIDbSa0/0aVPN89WJdURQYYB
+      DX/jdONuoUHFUNXVYXeXtzQkV58s1Eyv27m7F1ftthAQRmJ5b7zTRdxpjbzaLapb
+      Lca8iCrashLm+8dXhxWwA1wBC+OCjrMbG6sVotuRsxbRG2pc1sr0f52sA8zB5xmQ
+      8FfvTgr5drKOKjbfyfdxOV9FeSaDL3g5F5+b9Trgw2bvYNGJV39s+A5Ts6mFm3DD
+      fgDgwnHZAgMBAAECggEBAMEVyBakgUS7N390Nhvbmh5VhGOJpG4LDADlU2KkzoJ8
+      dm+EJeTBn+i9sA094a5fxLBpeOLHF8vIxpLq6VdfyYUZ6litl/HoSnlX75nrsJJ0
+      hLCIaGkRfiTJcb3Bb8CLS1s0o/N36w+qX7nqAG+MiJKi6ockeIDZaDA1myNx7hVi
+      l/2fUMLcJZAapU6WR+CdS7Twk+sXDlks4fX0tlzbLneif5OajICuuXY9s5iRGzUb
+      yzHZTYX9feAo5jQImhv37Zf8vReMGIz/effQmBYZBkWC/OWs18gCXzkoxOhJgI5j
+      i4XWWxe7x/poOZxQ+u5/eSuBXxUsQsy/ypKJPJzopYECgYEA6VNwPkuUK9I2TgBu
+      vJNyq8Y0zgDIHWRLkcIih5l3+efJMl+3Q1IwNkcZ6/eHhusaZPh1nB+9g0kNvwt6
+      HnXahL8WvYjY3aR7aSfR+q5ZVq2Nq2FGWiUnS0u753F1OYA0ZmvMS4n1dE888J0U
+      3xICro0ai79DNL0U3zlqcw/mPc0CgYEA5J/wQs23i0rys2uf108VvAXmJ9JiKhDU
+      /3YcfsSPyhQOcvd1e5OBuh+qorK5mKDM1G9Rg8APNsWZWA4B0qUL0IL/xQnv4fU4
+      qzhXur4Z/Bn1oXXlQXFPYIWjP01T6nuYP+5Ev46l+C8vTVPWSWjAmYVFgSLGWgkp
+      9wFo+xcEmD0CgYBWBoh0v2LjAT86ZRhu+KInyQ1BArLFe2wNUplui1vbzOS2aOnl
+      rVDPQknBYWMbkGUL4zthk6ZI2E90J6QfxO4LUXTt7p2eon1J2P+nQE76EUURce0B
+      YX9qWILwIznIOIeZV5dcJoJUHr7mK9Q9JqPMfYPTEHKT6D7gyod/4tXN5QKBgHiq
+      qca4iS1tq1djcIPVa+VHP8i407LcG2+RyUxnNnUzzMSFM2671faEjC0/I5IZHMLq
+      1h0xm1YPSPYevnuNPQUafyBiNEgQg45rOHKJr3FNykUj0pKN2ZVaM2VPzQCvpxXn
+      DkYEZjjtvouTukAYl77vhlW4IvSWbZ2/EsejyHsJAoGADig+7Y19yUB6Iqj//7FI
+      6bug7eceyafsFTTEghcNloHWnYBARA3878X5RQkLVUNocrZLkBG2Dn2d3aiEpWww
+      CZ+gbhraYKAflzD6wTJL29D5dLGF5k/88RTN60Gzoaxq7CkvlLwXCZjQSvjEGq5i
+      whJYgXwWvqy5VXxLc5amLXk=
+      -----END PRIVATE KEY-----
+    publicCert: |-
+      -----BEGIN CERTIFICATE-----
+      MIIDpzCCAo+gAwIBAgIUb+NqxHIP0Z15aqy5FY8+bb1vq6IwDQYJKoZIhvcNAQEL
+      BQAwYzELMAkGA1UEBhMCR0IxEDAOBgNVBAgMB0JlZGZvcmQxFTATBgNVBAcMDEJl
+      ZGZvcmRzaGlyZTETMBEGA1UECgwKTkdJTlggQCBGNTEWMBQGA1UEAwwNd3d3Lm5n
+      aW54LmNvbTAeFw0yMDA1MjIxNjM2NTBaFw0zMDA1MjAxNjM2NTBaMGMxCzAJBgNV
+      BAYTAkdCMRAwDgYDVQQIDAdCZWRmb3JkMRUwEwYDVQQHDAxCZWRmb3Jkc2hpcmUx
+      EzARBgNVBAoMCk5HSU5YIEAgRjUxFjAUBgNVBAMMDXd3dy5uZ2lueC5jb20wggEi
+      MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDQYBXFTj1ZdJGH7IfomkeJfeda
+      IueD01L6X6jj8TvS2xwTRHL4LIkZP882qHs2VfEpgbVi6a96lvWPoyzlf2E/UJCN
+      ePicwDZexmc0JsJyE5cSXg+E8tghfIDbSa0/0aVPN89WJdURQYYBDX/jdONuoUHF
+      UNXVYXeXtzQkV58s1Eyv27m7F1ftthAQRmJ5b7zTRdxpjbzaLapbLca8iCrashLm
+      +8dXhxWwA1wBC+OCjrMbG6sVotuRsxbRG2pc1sr0f52sA8zB5xmQ8FfvTgr5drKO
+      KjbfyfdxOV9FeSaDL3g5F5+b9Trgw2bvYNGJV39s+A5Ts6mFm3DDfgDgwnHZAgMB
+      AAGjUzBRMB0GA1UdDgQWBBRlcTlGeOB43btYcdllVv9obfz0szAfBgNVHSMEGDAW
+      gBRlcTlGeOB43btYcdllVv9obfz0szAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3
+      DQEBCwUAA4IBAQBezCDq4NKFB9i4gHZrZQ4z+Vgv3bDDea6BDAp2gxkFwnQNxgf9
+      mXy5d3SpXR6dmhFJg9RGtKU0IzHF09NaPbDXSKSlqXgXX3vTBfZE9a0oDFESs+1J
+      1Xnimah+mQMOuWiJU9W9omet5Y9OemQLHmeSVFbfQXBkTNKGO+2iKtWJNO8+zzT7
+      5WZTPiggaDbDAwjK2QP2N933lHxR5JDmkHHH6GHKLWXgYgxY0zx8R2+eFyvxJvGB
+      yaw7SnX8i5mjkgwwGhgTMBnSdf3F9eLcMHPgceMOuTyynpe9SSE9Bck3LykgvQDW
+      InWB8mhlndb/p8ZYVLx9y2LDq1h3iymbnoHM
+      -----END CERTIFICATE-----
+
