@@ -153,7 +153,6 @@ then follow <<docs/codereadynotes.adoc#,these notes>> instead.
 build and push the operator to your repository
 
 ----
-export 
 make docker-build IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
 make docker-push IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
 ----
@@ -339,6 +338,8 @@ data:
     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZB
   type: UEVN
 type: Opaque
+----
+
 ----
 kind: Secret
 apiVersion: v1
