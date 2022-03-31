@@ -178,9 +178,6 @@ We might set the `WATCH_NAMESPACE` as follows:
       value: "nginx-ingress,project-101,project-102"
 ----
 
-Replace the `REPLACE_IMAGE` placeholder in the Operator manifest with the actual
-location and name of the image you built above, and deploy.
-
 === Install the operator in the nginx-lb namespace
 
 ----
