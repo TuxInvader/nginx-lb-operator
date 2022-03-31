@@ -4,7 +4,7 @@
     # nginx_lb_namespace is set when a component update is triggered from a Deployment
     - name: Set the nginx_lb Namespace
       set_fact:
-        nginx_lb_namespace: "{{ nginx_lb_namespace | default( meta.namespace ) }}"
+        nginx_lb_namespace: "{{ nginx_lb_namespace | default( ansible_operator_meta.namespace ) }}"
 
     - name: Get the Controller Details
       k8s_info:
@@ -17,7 +17,7 @@
 
     - name: Add this instance to ctl_info
       set_fact:
-        ctl_info: "{{ ctl_info | combine( {'resources':[ {'spec': spec, 'metadata':{ 'name': meta.name, 'namespace': meta.namespace } } ]} ) }}"
+        ctl_info: "{{ ctl_info | combine( {'resources':[ {'spec': spec, 'metadata':{ 'name': ansible_operator_meta.name, 'namespace': ansible_operator_meta.namespace } } ]} ) }}"
       when: resource_type == "Controller"
 
     - name: Fail if we can't find the Controller

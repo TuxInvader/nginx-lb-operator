@@ -27,8 +27,8 @@
       k8s_info:
         kind: Deployment
         api_version: v1
-        name: "{{ meta.name }}"
-        namespace: "{{ meta.namespace }}"
+        name: "{{ ansible_operator_meta.name }}"
+        namespace: "{{ ansible_operator_meta.namespace }}"
       register: deployment_status
       until: (deployment_status.resources is defined) and
              (deployment_status.resources.0.spec.replicas  == (deployment_status.resources.0.status.availableReplicas | default(0)) )
@@ -49,7 +49,7 @@
         api_version: lb.nginx.com/v1alpha1
         namespace: "{{ lookup_namespace | default('') }}"
         label_selectors:
-          - "deployment-hash = {{ ( meta.name ~ '.' ~ meta.namespace ) | hash('sha224') }}"
+          - "deployment-hash = {{ ( ansible_operator_meta.name ~ '.' ~ ansible_operator_meta.namespace ) | hash('sha224') }}"
       register: components
 
     - name: Filter watched components

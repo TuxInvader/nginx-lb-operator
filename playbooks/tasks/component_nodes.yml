@@ -81,7 +81,7 @@
 
         - name: Get the NodePorts for the service
           set_fact:
-            node_port: "{{ service_info.resources.0.spec | json_query( target_port_query ) }}" 
+            node_port: "{{ service_info.resources.0.spec | json_query( target_port_query ) }}"
           vars:
             target_port_query: "ports[?targetPort==`{{ spec.workload.targetPort }}`].nodePort"
 
@@ -119,7 +119,7 @@
 
     - name: Add workloads to desiredState
       set_fact:
-        spec: "{{ spec | default({}) | combine( { 'desiredState':{ 'backend':{ 'workloadGroups':{ 'group':{ 'uris': { item: {}} }}}}}, recursive=True) }}"
+        spec: "{{ spec | default({}) | combine( { 'desiredState':{ 'backend':{ 'workloadGroups':{ spec.groupName:{ 'uris': { item: {}} }}}}}, recursive=True) }}"
       with_list: "{{ node_ips }}"
 
 ...

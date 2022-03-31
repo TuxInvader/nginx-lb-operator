@@ -36,8 +36,8 @@
         nginx_controller_appName: "{{ nginx_lb_namespace ~ '.' ~ spec.application }}"
         nginx_controller_component:
           metadata:
-            name: "{{ component_name | default( meta.name ) }}"
-            displayName: "{{ spec.displayName | default( component_name | default(meta.name) ) }}"
+            name: "{{ ansible_operator_component_name | default( ansible_operator_meta.name ) }}"
+            displayName: "{{ spec.displayName | default( component_name | default(ansible_operator_meta.name) ) }}"
             description: "{{ spec.description | default('Managed by NGINX-lb-operator') }}"
           desiredState: "{{ spec.desiredState | default({}) }}"
 

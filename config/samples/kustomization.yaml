@@ -1,0 +1,8 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- lb_v1alpha1_controller.yaml
+- lb_v1alpha1_application.yaml
+- lb_v1alpha1_component.yaml
+- lb_v1alpha1_gateway.yaml
+- lb_v1alpha1_certificate.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

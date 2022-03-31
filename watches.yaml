@@ -1,4 +1,5 @@
 ---
+# Use the 'create api' subcommand to add watches to this file.
 - version: v1alpha1
   group: lb.nginx.com
   kind: Controller
@@ -11,6 +12,7 @@
   group: lb.nginx.com
   kind: Application
   playbook: playbooks/application.yml
+  # reconcilePeriod: 3600s
   finalizer:
     name: finalizer.app.lb.nginx.com
     vars:
@@ -19,6 +21,7 @@
   group: lb.nginx.com
   kind: Component
   playbook: playbooks/component.yml
+  # reconcilePeriod: 240s
   finalizer:
     name: finalizer.com.lb.nginx.com
     vars:
@@ -27,6 +30,7 @@
   group: lb.nginx.com
   kind: Gateway
   playbook: playbooks/gateway.yml
+  # reconcilePeriod: 240s
   finalizer:
     name: finalizer.gw.lb.nginx.com
     vars:
@@ -35,12 +39,9 @@
   group: lb.nginx.com
   kind: Certificate
   playbook: playbooks/certificate.yml
+  # reconcilePeriod: 240s
   finalizer:
     name: finalizer.cert.lb.nginx.com
     vars:
       delete: true
-- version: v1
-  group: "apps"
-  kind: Deployment
-  playbook: playbooks/deployment.yml
-
+#+kubebuilder:scaffold:watch
