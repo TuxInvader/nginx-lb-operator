@@ -153,14 +153,8 @@ then follow <<docs/codereadynotes.adoc#,these notes>> instead.
 build and push the operator to your repository
 
 ----
-make docker-build IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
-make docker-push IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator:latest
-----
-
-=== Install the operator in the nginx-lb namespace
-
-----
-make deploy
+make docker-build IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator VERSION=latest
+make docker-push IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator VERSION=latest
 ----
 
 ****
@@ -190,7 +184,7 @@ location and name of the image you built above, and deploy.
 === Install the operator in the nginx-lb namespace
 
 ----
-make deploy
+make deploy IMAGE_TAG_BASE=myrepo.example.com:5000/nginx/nginx-lb-operator VERSION=latest
 ----
 
 That should be it. Your operator is running.

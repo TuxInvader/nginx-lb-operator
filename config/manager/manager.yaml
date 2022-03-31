@@ -31,7 +31,7 @@ spec:
         - --leader-elect
         - --leader-election-id=nginx-lb-operator
         ## Change image with image name
-        image: "REPLACE_IMAGE" #controller:latest
+        image: "controller" #controller:latest
         imagePullPolicy: Always
         name: manager
         env:
